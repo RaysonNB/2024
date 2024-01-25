@@ -17,7 +17,6 @@ import datetime
 def say(a):
     text = str(a)
     process = subprocess.Popen(['espeak-ng', '-v', 'yue', '-a', '300', '-s', '180', text])
-
 def say2(a):
     text = str(a)
     process = subprocess.Popen(['espeak-ng', '-v', 'yue', '-a', '200', '-s', '200', text])
