@@ -182,6 +182,7 @@ if __name__ == "__main__":
     # cv2.imshow("bottle", frame2)
     pose_cnt_cnt=0
     say("start the program")
+    hand_cnt=0
     while not rospy.is_shutdown():
         rospy.Rate(50).sleep()
 
@@ -207,6 +208,7 @@ if __name__ == "__main__":
         if getframeyyy=="person":
             A=[]
             B=[]
+            yu=0
             poses = net_pose.forward(outframe)
             if len(poses) > 0:
                 YN = -1
@@ -215,17 +217,23 @@ if __name__ == "__main__":
                     YN = 0
                     a_num, b_num = 9,7
                     A = list(map(int, poses[0][a_num][:2]))
-                    ax,ay,az = get_real_xyz(depth2, A[0], A[1])
+                    if(640>=A[0]>=0 and 320>=A[1]>=0):
+                        ax,ay,az = get_real_xyz(depth2, A[0], A[1])
+                        yu+=1
                     B = list(map(int, poses[0][b_num][:2]))
-                    bx,by,bz = get_real_xyz(depth2, B[0], B[1])
+                    if(640>=B[0]>=0 and 320>=B[1]>=0):
+                        bx,by,bz = get_real_xyz(depth2, B[0], B[1])
+                        yu+=1
             print(A, B)
-            if len(A) != 0:
+            if len(A) != 0 and yu>=2:
                 cv2.circle(outframe, (A[0], A[1]), 3, (0, 255, 0), -1)
-            if len(B) != 0:
+            if len(B) != 0 and yu>=2:
                 cv2.circle(outframe, (B[0], B[1]), 3, (0, 255, 0), -1)
             g=outframe.copy()
             cv2.imshow("hand", g)
             if len(A) != 0 and len(B) != 0:
+                hand_cnt+=1
+            if hand_cnt>=5:
                 #time.sleep(2)
                 print("before position",ax, ay,az,bx, by,bz)
                 pose_cnt_cnt+=1
@@ -240,11 +248,10 @@ if __name__ == "__main__":
         
             axs2, azs2, axs1, azs1 = test_point(ax, az, degree666)
             bxs2, bzs2, bxs1, bzs1 = test_point(bx, bz, degree666)
+            
             print("hand position",axs1, ay,azs1,bxs1, by,bzs1)
-            print("hand position",axs1, ay,azs1,bxs1, by,bzs1)
-            print("hand position",axs1, ay,azs1,bxs1, by,bzs1)
-            print("hand position",axs1, ay,azs1,bxs1, by,bzs1)
-            print("hand position",axs1, ay,azs1,bxs1, by,bzs1)
+            break
+            
             #break
             detections = dnn_yolo.forward(outframe)[0]["det"]
             for i, detection in enumerate(detections):
