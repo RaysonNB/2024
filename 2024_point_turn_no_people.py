@@ -127,6 +127,7 @@ def calc_angular_z(cx, tx):
 
 
 def test_point(xs, ys, d):
+    d=d*math.pi/180
     ys1 = math.cos(d) * ys + math.sin(d) * xs  # 12 to 01
     ys2 = math.cos(d) * ys - math.sin(d) * xs  # 01 to 12
     if xs != 0:
