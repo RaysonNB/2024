@@ -14,23 +14,35 @@ from sensor_msgs.msg import Imu
 from tf.transformations import euler_from_quaternion
 import subprocess
 import datetime
+
+
 def say(a):
     text = str(a)
     process = subprocess.Popen(['espeak-ng', '-v', 'yue', '-a', '300', '-s', '180', text])
+
+
 def say2(a):
     text = str(a)
     process = subprocess.Popen(['espeak-ng', '-v', 'yue', '-a', '200', '-s', '200', text])
     process.wait()
+
+
 # gemini2
 def callback_image2(msg):
     global frame2
     frame2 = CvBridge().imgmsg_to_cv2(msg, "bgr8")
+
+
 def callback_depth2(msg):
     global depth2
     depth2 = CvBridge().imgmsg_to_cv2(msg, "passthrough")
+
+
 def callback_imu(msg):
     global _imu
     _imu = msg
+
+
 def get_distance(px, py, pz, ax, ay, az, bx, by, bz):
     A, B, C, p1, p2, p3, qx, qy, qz, distance = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
     A = int(bx) - int(ax)
@@ -47,6 +59,8 @@ def get_distance(px, py, pz, ax, ay, az, bx, by, bz):
         qz = int(C) * int(t) + int(az)
         return int(int(pow(((int(qx) - int(px)) ** 2 + (int(qy) - int(py)) ** 2 + (int(qz) - int(pz)) ** 2), 0.5)))
     return 0
+
+
 def get_real_xyz(dp, x, y):
     a = 55.0 * np.pi / 180
     b = 86.0 * np.pi / 180
@@ -57,12 +71,16 @@ def get_real_xyz(dp, x, y):
     real_y = round(y * 2 * d * np.tan(a / 2) / h)
     real_x = round(x * 2 * d * np.tan(b / 2) / w)
     return real_x, real_y, d
+
+
 def move(forward_speed: float = 0, turn_speed: float = 0):
     global _cmd_vel
     msg = Twist()
     msg.linear.x = forward_speed
     msg.angular.z = turn_speed
     _cmd_vel.publish(msg)
+
+
 def turn_to(angle: float, speed: float):
     global _imu
     max_speed = 0.05
@@ -93,6 +111,8 @@ def turn_to(angle: float, speed: float):
         move(0.0, max_speed * speed * e)
         rospy.Rate(20).sleep()
     move(0.0, 0.0)
+
+
 def turn(angle: float):
     global _imu
     q = [
@@ -108,6 +128,8 @@ def turn(angle: float):
     elif target < -np.pi:
         target = target + np.pi * 2
     turn_to(target, 0.1)
+
+
 def calc_linear_x(cd, td):
     if cd <= 0: return 0
     e = cd - td
@@ -116,6 +138,8 @@ def calc_linear_x(cd, td):
     if x > 0: x = min(x, 0.5)
     if x < 0: x = max(x, -0.5)
     return x
+
+
 def calc_angular_z(cx, tx):
     if cx < 0: return 0
     e = tx - cx
@@ -127,7 +151,7 @@ def calc_angular_z(cx, tx):
 
 
 def test_point(xs, ys, d):
-    d=d*math.pi/180
+    d = d * math.pi / 180
     ys1 = math.cos(d) * ys + math.sin(d) * xs  # 12 to 01
     ys2 = math.cos(d) * ys - math.sin(d) * xs  # 01 to 12
     if xs != 0:
@@ -137,6 +161,7 @@ def test_point(xs, ys, d):
         xs1 = -1 * math.sqrt(ys ** 2 - ys1 ** 2)
         xs2 = math.sqrt(ys ** 2 - ys2 ** 2)
     return xs1, ys1, xs2, ys2
+
 
 if __name__ == "__main__":
     rospy.init_node("demo")
@@ -166,24 +191,27 @@ if __name__ == "__main__":
     b1, b2, b3, b4, b5 = 0, 0, 0, 0, 0
     pre_z, pre_x = 0, 0
     cur_z, cur_x = 0, 0
-    axs1, ays1, axs2, ays2=0,0,0,0
+    axs1, ays1, axs2, ays2 = 0, 0, 0, 0
     test = 0
     p_list = []
     sb = 0
+    best_num=40
     framecnt = 0
     bottlecolor = ["blue", "orange", "pink"]
     saidd = 0
     get_b = 0
     bottlecnt = 0
     line_destory_cnt = 0
-    degree666=90
-    #turn(0)
-    getframeyyy="person"
+    degree666 = 90
+    # turn(0)
+    getframeyyy = "person"
     times_cnt = 1  # times count
     # cv2.imshow("bottle", frame2)
-    pose_cnt_cnt=0
+    pose_cnt_cnt = 0
     say("start the program")
-    hand_cnt=0
+    hand_cnt = 0
+    game="turn"
+    turn_angle=30
     while not rospy.is_shutdown():
         rospy.Rate(50).sleep()
 
@@ -198,62 +226,62 @@ if __name__ == "__main__":
         frame2 = frame2.copy()
         bottle = []
         capture_img = frame2.copy()
-        
-        t_pose,flag = None,None
-        E,ggg,TTT,ind,sumd = 0,0,0,0,0
-        s_d,s_c,dis_list,al,points = [],[],[],[],[]
-        
+
+        t_pose, flag = None, None
+        E, ggg, TTT, ind, sumd = 0, 0, 0, 0, 0
+        s_d, s_c, dis_list, al, points = [], [], [], [], []
+
         outframe = frame2.copy()
-        az,bz=0,0
-        
-        if getframeyyy=="person":
-            A=[]
-            B=[]
-            yu=0
+        az, bz = 0, 0
+
+        if getframeyyy == "person":
+            A = []
+            B = []
+            yu = 0
             poses = net_pose.forward(outframe)
             if len(poses) > 0:
                 YN = -1
-                a_num, b_num = 9,7
+                a_num, b_num = 9, 7
                 if poses[0][9][2] > 0 and poses[0][7][2] > 0:
                     YN = 0
-                    a_num, b_num = 9,7
+                    a_num, b_num = 9, 7
                     A = list(map(int, poses[0][a_num][:2]))
-                    if(640>=A[0]>=0 and 320>=A[1]>=0):
-                        ax,ay,az = get_real_xyz(depth2, A[0], A[1])
-                        yu+=1
+                    if (640 >= A[0] >= 0 and 320 >= A[1] >= 0):
+                        ax, ay, az = get_real_xyz(depth2, A[0], A[1])
+                        yu += 1
                     B = list(map(int, poses[0][b_num][:2]))
-                    if(640>=B[0]>=0 and 320>=B[1]>=0):
-                        bx,by,bz = get_real_xyz(depth2, B[0], B[1])
-                        yu+=1
+                    if (640 >= B[0] >= 0 and 320 >= B[1] >= 0):
+                        bx, by, bz = get_real_xyz(depth2, B[0], B[1])
+                        yu += 1
             print(A, B)
-            if len(A) != 0 and yu>=2:
+            if len(A) != 0 and yu >= 2:
                 cv2.circle(outframe, (A[0], A[1]), 3, (0, 255, 0), -1)
-            if len(B) != 0 and yu>=2:
+            if len(B) != 0 and yu >= 2:
                 cv2.circle(outframe, (B[0], B[1]), 3, (0, 255, 0), -1)
-            g=outframe.copy()
+            g = outframe.copy()
             cv2.imshow("hand", g)
             if len(A) != 0 and len(B) != 0:
-                hand_cnt+=1
-            if hand_cnt>=5:
-                #time.sleep(2)
-                print("before position",ax, ay,az,bx, by,bz)
-                pose_cnt_cnt+=1
+                hand_cnt += 1
+            if hand_cnt >= 5:
+                # time.sleep(2)
+                print("before position", ax, ay, az, bx, by, bz)
+                pose_cnt_cnt += 1
                 getframeyyy = "object"
-                #time.sleep(1)
+                # time.sleep(1)
                 print("bext")
                 say("found hand")
-                turn(-degree666+7)
-                print("before position",ax, ay,az,bx, by,bz)
-                
-        if getframeyyy=="object":
-        
-            axs2, azs2, axs1, azs1 = test_point(ax, az, degree666)
-            bxs2, bzs2, bxs1, bzs1 = test_point(bx, bz, degree666)
-            
-            print("hand position",axs1, ay,azs1,bxs1, by,bzs1)
+                turn(-30 + 2)
+                print("before position", ax, ay, az, bx, by, bz)
+
+        if getframeyyy == "object":
+
+            axs2, azs2, axs1, azs1 = test_point(ax, az, turn_angle)
+            bxs2, bzs2, bxs1, bzs1 = test_point(bx, bz, turn_angle)
+
+            print("hand position", axs1, ay, azs1, bxs1, by, bzs1)
             break
-            
-            #break
+
+            # break
             detections = dnn_yolo.forward(outframe)[0]["det"]
             for i, detection in enumerate(detections):
                 x1, y1, x2, y2, score, class_id = map(int, detection)
@@ -261,15 +289,15 @@ if __name__ == "__main__":
                 score = detection[4]
                 if class_id != 39: continue
                 if score < 0.4: continue
-                if cy>=480: continue
-                print(cx,cy,"position bottle")
-                cx=min(cx,640)
-                cy=min(cy,480-1)
+                if cy >= 480: continue
+                print(cx, cy, "position bottle")
+                cx = min(cx, 640)
+                cy = min(cy, 480 - 1)
                 k2, kk1, kkkz = get_real_xyz(depth2, cx, cy)
                 if kkkz > 1500 or abs(kkkz) <= 0: continue
                 al.append([x1, y1, x2, y2, score, class_id])
                 # print(float(score), class_id)
-                hhh=str(class_id)+" " +str(k2)+" "+str(kk1)+" "+str(kkkz)
+                hhh = str(class_id) + " " + str(k2) + " " + str(kk1) + " " + str(kkkz)
                 cv2.rectangle(outframe, (x1, y1), (x2, y2), (0, 255, 0), 5)
                 cv2.putText(outframe, str(hhh), (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
             bb = sorted(al, key=(lambda x: x[0]))
@@ -288,7 +316,7 @@ if __name__ == "__main__":
                 dis_list.append(pz)
                 cnt = get_distance(px, py, pz, axs1, ay, azs1, bxs1, by, bzs1)
                 cv2.putText(outframe, str(int(cnt) // 10), (x1 + 5, y1 - 40), cv2.FONT_HERSHEY_SIMPLEX, 1.15,
-                                    (0, 0, 255), 2)
+                            (0, 0, 255), 2)
                 cnt = int(cnt)
                 '''
                 if cnt != 0 and cnt <= 600:
@@ -304,38 +332,30 @@ if __name__ == "__main__":
             for i, detection in enumerate(bottle):
                 # print("1")
                 x1, y1, x2, y2, score, class_id = map(int, detection)
-                
+
                 if (class_id == 39):
                     if i == E:
                         cx1 = (x2 - x1) // 2 + x1
                         cy1 = (y2 - y1) // 2 + y1
+                        if(TTT<=best_num):
+                            game="end"
+                            getframeyyy = ("nothing")
+                        else: game="turn"
                         cv2.putText(outframe, str(int(TTT) // 10), (x1 + 5, y1 - 40), cv2.FONT_HERSHEY_SIMPLEX, 1.15,
                                     (0, 0, 255), 2)
                         cv2.rectangle(outframe, (x1, y1), (x2, y2), (0, 0, 255), 5)
-                        if i == 0: b1 += 1
-                        if i == 1: b2 += 1
-                        if i == 2: b3 += 1
                         _, _, dddd1 = get_real_xyz(depth2, cx1, cy1)
-
                         break
-
                     else:
                         v = s_c[i]
-                        
                         cv2.putText(outframe, str(int(v)), (x1 + 5, y1 - 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0),
                                     2)
-            #if b1 == max(b1, b2, b3): mark = 0
-            #if b2 == max(b1, b2, b3): mark = 1
-            #if b3 == max(b1, b2, b3): mark = 2
-            #times_cnt = 1
-            #if b1 >= times_cnt or b2 >= times_cnt or b3 >= times_cnt:
-            #    b1, b2, b3 = 0, 0, 0
-            print("b1: %d b2: %d b3: %d" % (b1, b2, b3))
+            if game=="turn":
+                turn(-2)
+                say("turn")
+                turn_angle+=1
         frame2 = cv2.resize(outframe, (640 * 2, 480 * 2))
         cv2.imshow("image", frame2)
         key = cv2.waitKey(1)
         if key in [ord('q'), 27]:
             break
-
-
-
