@@ -37,7 +37,8 @@ def callback_depth2(msg):
     global depth2
     depth2 = CvBridge().imgmsg_to_cv2(msg, "passthrough")
 
-#imu chassis
+
+# imu chassis
 def callback_imu(msg):
     global _imu
     _imu = msg
@@ -214,9 +215,9 @@ if __name__ == "__main__":
     game = "turn"
     turn_angle = -30
     yooooo = 0
-    mode =0
+    mode = 0
     ppp_cnt = 0
-    get1=0
+    get1 = 0
     while not rospy.is_shutdown():
         rospy.Rate(50).sleep()
 
@@ -240,8 +241,8 @@ if __name__ == "__main__":
         s_d, s_c, dis_list, al, points = [], [], [], [], []
 
         outframe = frame2.copy()
-        #az, bz = 0, 0
-        
+        # az, bz = 0, 0
+
         if getframeyyy == "person":
             az, bz = 0, 0
             A = []
@@ -284,7 +285,7 @@ if __name__ == "__main__":
                 print("before position", ax, ay, az, bx, by, bz)
 
         if getframeyyy == "object":
-            if mode == 0 and mode !=1:
+            if mode == 0 and mode != 1:
                 q = [
                     _imu.orientation.x,
                     _imu.orientation.y,
@@ -315,14 +316,14 @@ if __name__ == "__main__":
                 cv2.rectangle(outframe, (x1, y1), (x2, y2), (0, 255, 0), 5)
                 cv2.putText(outframe, str(hhh), (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
             bb = sorted(al, key=(lambda x: x[0]))
-            
-            if (len(bb) < 3) and mode ==1:
+
+            if (len(bb) < 3) and mode == 1:
                 move(0, -0.3)
             else:
-                
-                mode+=1
+
+                mode += 1
                 if get1 == 0:
-                    mode=3
+                    mode = 3
                     q = [
                         _imu.orientation.x,
                         _imu.orientation.y,
@@ -331,13 +332,13 @@ if __name__ == "__main__":
                     ]
                     roll2, pitch2, yawb = euler_from_quaternion(q)
                     print("hello")
-                    get1+=1
-                    
-                yaw2=yawb
+                    get1 += 1
+
+                yaw2 = yawb
                 move(0, 0)
-                degree666 = (2*np.pi-((yaw2+np.pi)-(yaw1+np.pi)))*180/np.pi%360
+                degree666 = (2 * np.pi - ((yaw2 + np.pi) - (yaw1 + np.pi))) * 180 / np.pi % 360
                 print("degree666", degree666)
-                print("yaw1-yaw2",yaw1-yaw2)
+                print("yaw1-yaw2", yaw1 - yaw2)
                 print("yaw1", yaw1)
                 print("yaw2", yaw2)
                 print("roll1", roll1)
@@ -361,7 +362,8 @@ if __name__ == "__main__":
 
                     px, py, pz = get_real_xyz(depth2, cx1, cy1)
                     dis_list.append(pz)
-                    cnt = get_distance(px, py, pz, axs2, ay, azs2, bxs2, by, bzs2)
+                    pxs2, pzs2, pxs1, pzs1 = test_point(px, pz, degree666)
+                    cnt = get_distance(pxs2, py, pzs2, axs2, ay, azs2, bxs2, by, bzs2)
                     cv2.putText(outframe, str(int(cnt) // 10), (x1 + 5, y1 - 40), cv2.FONT_HERSHEY_SIMPLEX, 1.15,
                                 (0, 0, 255), 2)
                     cnt = int(cnt)
