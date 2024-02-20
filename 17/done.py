@@ -319,8 +319,20 @@ if __name__ == "__main__":
 
             if (len(bb) < 3) and mode == 1:
                 move(0, -0.3)
+                
             else:
-
+                while abs(e)>3:
+                    h,w,c = down_image.shape
+                    x1, y1, x2, y2, score, class_id = map(int, bb[1])
+                    cx2, cy2 = (x1 + x2) // 2, (y1 + y2) // 2
+                    e = w//2 - cx2
+                    v = 0.001 * e
+                    if v > 0:
+                        v = min(v, 0.3)
+                    if v < 0:
+                        v = max(v, -0.3)
+                    move(0, v)
+                    print("error",e)
                 mode += 1
                 if get1 == 0:
                     mode = 3
