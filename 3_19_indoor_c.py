@@ -9,6 +9,7 @@ import numpy as np
 from geometry_msgs.msg import Twist
 import math
 import time
+import pyttsx3
 from sensor_msgs.msg import Imu
 from std_srvs.srv import Empty
 from RobotChassis import RobotChassis
@@ -49,9 +50,6 @@ def callback_image1(msg):
 def callback_depth1(msg):
     global depth1
     depth1 = CvBridge().imgmsg_to_cv2(msg, "passthrough")
-def callback_depth1(msg):
-    global _depth1
-    _depth1 = CvBridge().imgmsg_to_cv2(msg, "passthrough")
 def turn_to(angle: float, speed: float):
     global _imu
     max_speed = 0.3
@@ -99,31 +97,10 @@ def turn(angle: float):
     elif target < -np.pi:
         target = target + np.pi * 2
     turn_to(target, 0.1)
-'''
-def callback_image(msg):
-    global _frame
-    _frame = cv2.flip(CvBridge().imgmsg_to_cv2(msg, "bgr8"),0)'''
-
-def say(a):
-    global publisher_speaker
-    publisher_speaker.publish(a)
-
-'''
-def callback_depth(msg):
-    global _depth
-    _depth = cv2.flip(CvBridge().imgmsg_to_cv2(msg, "passthrough"),0)
-
-def callback_imu(msg):
-    global _imu
-    _imu = msg
-
-def callback_image1(msg):
-    global _image1
-    _image1 = CvBridge().imgmsg_to_cv2(msg, "bgr8")
-
-def callback_depth1(msg):
-    global _depth1
-    _depth1 = CvBridge().imgmsg_to_cv2(msg, "passthrough")'''
+def say(s):
+    global engine
+    engine.say(s) 
+    engine.runAndWait() 
 if __name__ == "__main__":    
     rospy.init_node("demo")
     rospy.loginfo("demo node start!")
@@ -166,6 +143,8 @@ if __name__ == "__main__":
     pos = [[-0.281,-0.793,0],[0.331,-0.262,0],[0.828,0.295,0],[1.24,0.885,0],[1.67,1.54,0],[2.24,2.31,0],[2.95,2.84,0],[2.41,4.02,0],[1.19,4.72,0],[0.41,5.16,0],[-0.477,5.53,0],[-1.36,6.01,0],[-2.06,6.48,0],[-3.3,5.02,0],[-2.46,3.3,0],[-1.55,2.86,0],[-0.452,2.32,0],[0.541,1.75,0],[1.25,1.39,0],[-0.327,-0.807,0],[-0.909,-0.394,0],[-1.64,0.0751,0],[-2.36,0.407,0],[-3.2,0.811,0]]'''
     #pos = [[-2.46,3.3,0],[-1.55,2.86,0],[-0.452,2.32,0],[0.541,1.75,0],[1.25,1.39,0],[-0.327,-0.807,0],[-0.909,-0.394,0],[-1.64,0.0751,0],[-2.36,0.407,0],[-3.2,0.811,0]]
     print("start")
+    engine = pyttsx3.init() 
+    say("start")
     while not rospy.is_shutdown():
         rospy.Rate(10).sleep()
         if frame1 is None: 
@@ -198,30 +177,31 @@ if __name__ == "__main__":
             for i in range(290):
                 move(0,0.25)
                 time.sleep(0.1)
-            detections1 = dnn_yolo.forward(up_image)[0]["det"]
-            detections2 = dnn_yolo.forward(down_image)[0]["det"]
-            goal_index[0,1,2,3,4,5,6,7,8,9]
-            for i, detection in enumerate(detections1):
-                x1, y1, x2, y2, score, class_id = map(int, detection)
-                score=detection[4]
-                if class_id not in goal_index: continue
-                if score<0.3: continue
-                al.append([x1, y1, x2, y2, score, class_id])
-                print(float(score), class_id)
-                cv2.rectangle(up_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                cv2.circle(up_image, (cx, cy), 5, (0, 255, 0), -1)
-                cv2.putText(up_image, str(class_id), (x1+5, y1+15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-            for i, detection in enumerate(detections2):
-                x1, y1, x2, y2, score, class_id = map(int, detection)
-                score=detection[4]
-                if class_id not in goal_index: continue
-                if score<0.3: continue
-                al.append([x1, y1, x2, y2, score, class_id])
-                print(float(score), class_id)
-                cv2.rectangle(down_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                cv2.circle(down_image, (cx, cy), 5, (0, 255, 0), -1)
-                cv2.putText(down_image, str(class_id), (x1+5, y1+15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-            bb=sorted(al, key=(lambda x:x[0]))
+
+                
+                detections1 = dnn_yolo.forward(up_image)[0]["det"]
+                detections2 = dnn_yolo.forward(down_image)[0]["det"]
+                goal_index[0,1,2,3,4,5,6,7,8,9]
+                for i, detection in enumerate(detections1):
+                    x1, y1, x2, y2, score, class_id = map(int, detection)
+                    score=detection[4]
+                    if class_id not in goal_index: continue
+                    if score<0.3: continue
+                    al.append([x1, y1, x2, y2, score, class_id])
+                    print(float(score), class_id)
+                    cv2.rectangle(up_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    cv2.circle(up_image, (cx, cy), 5, (0, 255, 0), -1)
+                    cv2.putText(up_image, str(class_id), (x1+5, y1+15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                for i, detection in enumerate(detections2):
+                    x1, y1, x2, y2, score, class_id = map(int, detection)
+                    score=detection[4]
+                    if class_id not in goal_index: continue
+                    if score<0.3: continue
+                    al.append([x1, y1, x2, y2, score, class_id])
+                    print(float(score), class_id)
+                    cv2.rectangle(down_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    cv2.circle(down_image, (cx, cy), 5, (0, 255, 0), -1)
+                    cv2.putText(down_image, str(class_id), (x1+5, y1+15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
                     
                     
                   
