@@ -38,18 +38,10 @@ def get_real_xyz(dp, x, y):
 def callback_image2(msg):
     global frame2
     frame2 = CvBridge().imgmsg_to_cv2(msg, "bgr8")
-
-def callback_depth2(msg):
-    global depth2
-    depth2 = CvBridge().imgmsg_to_cv2(msg, "passthrough")
 #astra
 def callback_image1(msg):
     global frame1
     frame1 = CvBridge().imgmsg_to_cv2(msg, "bgr8")
-
-def callback_depth1(msg):
-    global depth1
-    depth1 = CvBridge().imgmsg_to_cv2(msg, "passthrough")
 def turn_to(angle: float, speed: float):
     global _imu
     max_speed = 0.3
@@ -107,15 +99,10 @@ if __name__ == "__main__":
 
     frame2 = None
     rospy.Subscriber("/camera/color/image_raw", Image, callback_image2)
-
-    depth2 = None
-    rospy.Subscriber("/camera/depth/image_raw", Image, callback_depth2)
     
     frame1 = None
     rospy.Subscriber("/cam2/rgb/image_raw", Image, callback_image1)
 
-    depth1= None
-    rospy.Subscriber("/cam2/depth/image_raw", Image, callback_depth1)
     
     topic_imu = "/imu/data"
     _imu=None
@@ -153,12 +140,6 @@ if __name__ == "__main__":
         if frame2 is None: 
             print("frame2")
             continue
-        if depth1 is None: 
-            print("depth1")
-            continue
-        if depth2 is None: 
-            print("depth2")
-            continue
         up_image=frame2.copy()
         down_image=frame1.copy()
         for [i,j,k] in pos:
@@ -192,6 +173,10 @@ if __name__ == "__main__":
                     cv2.rectangle(up_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
                     cv2.circle(up_image, (cx, cy), 5, (0, 255, 0), -1)
                     cv2.putText(up_image, str(class_id), (x1+5, y1+15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                    now = datetime.datetime.now()
+                    filename = now.strftime("%Y-%m-%d_%H-%M-%S.jpg")
+                    output_dir = "/home/pcms/catkin_ws/src/beginner_tutorials/src/m1_evidence/"
+                    cv2.imwrite(output_dir + filename, up_image)
                 for i, detection in enumerate(detections2):
                     x1, y1, x2, y2, score, class_id = map(int, detection)
                     score=detection[4]
@@ -202,6 +187,10 @@ if __name__ == "__main__":
                     cv2.rectangle(down_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
                     cv2.circle(down_image, (cx, cy), 5, (0, 255, 0), -1)
                     cv2.putText(down_image, str(class_id), (x1+5, y1+15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+                    now = datetime.datetime.now()
+                    filename = now.strftime("%Y-%m-%d_%H-%M-%S.jpg")
+                    output_dir = "/home/pcms/catkin_ws/src/beginner_tutorials/src/m1_evidence/"
+                    cv2.imwrite(output_dir + filename, down_image)
                     
                     
                   
