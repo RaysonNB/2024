@@ -9,12 +9,18 @@ import numpy as np
 from geometry_msgs.msg import Twist
 import math
 import time
-
 from sensor_msgs.msg import Imu
 from std_srvs.srv import Empty
 from RobotChassis import RobotChassis
 import datetime
-
+from mr_voice.msg import Voice
+from std_msgs.msg import String
+def say(g):
+    publisher_speaker.publish(g)
+    rospy.sleep(1)
+def callback_voice(msg):
+    global s
+    s = msg.text
 def move(forward_speed: float = 0, turn_speed: float = 0):
     global _cmd_vel
     msg = Twist()
@@ -39,7 +45,10 @@ def say(s):
 if __name__ == "__main__":    
     rospy.init_node("demo")
     rospy.loginfo("demo node start!")
-
+    print("speaker")
+    rospy.Subscriber("/voice/text", Voice, callback_voice)
+    publisher_speaker = rospy.Publisher("/speaker/say", String, queue_size=10)
+    
     frame2 = None
     rospy.Subscriber("/camera/color/image_raw", Image, callback_image2)
     
