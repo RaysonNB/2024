@@ -35,7 +35,7 @@ class FollowMe(object):
             cx = (x2 - x1) // 2 + x1
             cy = (y2 - y1) // 2 + y1
             gggd=self.get_real_xyz(up_depth,cx,cy)
-            if score > 0.65 and class_id == class_need:
+            if score > 0.65 and class_id == class_need and gggd<=1500:
                 detection_list.append([x1,y1,x2,y2,cx,cy])
                 cv2.rectangle(down_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
                 cv2.circle(down_image, (cx, cy), 5, (0, 255, 0), -1)
