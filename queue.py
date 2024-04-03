@@ -131,7 +131,7 @@ class FollowMe(object):
 
 
         frame = image
-        if cx==0:
+        if cx==1500:
             cur_x, cur_z = 0, 0
             return cur_x, cur_z, frame, "no"
 
