@@ -26,41 +26,21 @@ class FollowMe(object):
 
     def find_cx_cy(self) -> Tuple[int, int]:
         global up_image, up_depth, net_pose
-        l=[5, 12]
-        h, w = up_image.shape[:2]
-        pose = None
-        poses = net_pose.forward(up_image)
-      
-        min_distance = 999999
-        closest_person = None
-        reference_x, reference_y = 100, 100 
-        for i, pose in enumerate(poses):
-            x, y, preds = self.get_pose_target(pose, l[0])
-            if preds <= 0:
-                continue
-            _,_,distance = self.get_real_xyz(up_depth, x, y)
-            if distance < min_distance and distance <= 1800 and distance !=0:
-                min_distance = distance
-                closest_person = pose
-
-        if closest_person is None:
-            return 0, 0, up_image, "no"
-        print(min_distance)
-        key_points = []
-        for j, num in enumerate(l):
-            x, y, preds = self.get_pose_target(closest_person, num)
-            if preds <= 0:
-                continue
-            key_points.append((x, y))
-
-        cx, cy = np.mean(key_points, axis=0)
-
-        x_min = int(np.min(key_points, axis=0)[0])
-        y_min = int(np.min(key_points, axis=0)[1])
-        x_max = int(np.max(key_points, axis=0)[0])
-        y_max = int(np.max(key_points, axis=0)[1])
-        cv2.rectangle(up_image, (x_min, y_min), (x_max, y_max), (0, 0, 255), 2)
-
+        
+        detections = dnn_clothes.forward(down_image)[0]["det"]
+        for i, detection in enumerate(detections):
+            #print(detection)
+            x1, y1, x2, y2, score, class_id = map(int, detection)
+            score = detection[4]
+            cx = (x2 - x1) // 2 + x1
+            cy = (y2 - y1) // 2 + y1
+            if score > 0.65 and class_id == class_need:
+                detection_list.append([x1,y1,x2,y2,cx,cy])
+                cv2.rectangle(down_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                cv2.circle(down_image, (cx, cy), 5, (0, 255, 0), -1)
+                print("bag score:", score)
+                break
+        
         return int(cx), int(cy), up_image, "yes"
 
     def get_pose_target(self, pose, num):
