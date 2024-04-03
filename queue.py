@@ -20,39 +20,41 @@ from typing import Tuple, List
 from RobotChassis import RobotChassis
 import datetime
 
+
 class FollowMe(object):
     def __init__(self) -> None:
         self.pre_x, self.pre_z = 0.0, 0.0
-
+    '''
     def find_cx_cy(self) -> Tuple[int, int]:
         global up_image, up_depth, net_pose
-        
+
         detections = dnn_clothes.forward(down_image)[0]["det"]
         for i, detection in enumerate(detections):
-            #print(detection)
+            # print(detection)
             x1, y1, x2, y2, score, class_id = map(int, detection)
             score = detection[4]
             cx = (x2 - x1) // 2 + x1
             cy = (y2 - y1) // 2 + y1
-            gggd=self.get_real_xyz(up_depth,cx,cy)
-            if score > 0.65 and class_id == class_need and gggd<=1500:
-                detection_list.append([x1,y1,x2,y2,cx,cy])
+            gggd = self.get_real_xyz(up_depth, cx, cy)
+            if score > 0.65 and class_id == class_need and gggd <= 1500:
+                detection_list.append([x1, y1, x2, y2, cx, cy])
                 cv2.rectangle(down_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
                 cv2.circle(down_image, (cx, cy), 5, (0, 255, 0), -1)
                 print("bag score:", score)
                 break
-        
-        return int(cx), int(cy), up_image, "yes"
+
+        return int(cx), int(cy), up_image, "yes"'''
 
     def get_pose_target(self, pose, num):
         p = []
         for i in [num]:
             if pose[i][2] > 0:
                 p.append(pose[i])
-                
+
         if len(p) == 0:
             return -1, -1, -1
         return int(p[0][0]), int(p[0][1]), 1
+
     def get_real_xyz(self, depth, x: int, y: int) -> Tuple[float, float, float]:
         if x < 0 or y < 0:
             return 0, 0, 0
@@ -123,14 +125,15 @@ class FollowMe(object):
             z = max(z, -0.2)
         return z
 
-    def calc_cmd_vel(self, image, depth) -> Tuple[float, float]:
+    def calc_cmd_vel(self, image, depth, cx, cy) -> Tuple[float, float]:
         image = image.copy()
         depth = depth.copy()
 
-        cx, cy, frame, yn = self.find_cx_cy()
-        if yn == "no":
+
+        frame = image
+        if cx==0:
             cur_x, cur_z = 0, 0
-            return cur_x, cur_z,frame,"no"
+            return cur_x, cur_z, frame, "no"
 
         print(cx, cy)
         _, _, d = self.get_real_xyz(depth, cx, cy)
@@ -156,22 +159,27 @@ class FollowMe(object):
         self.pre_x = cur_x
         self.pre_z = cur_z
 
-        return cur_x, cur_z,frame,"yes"
+        return cur_x, cur_z, frame, "yes"
+
+
 def move(forward_speed: float = 0, turn_speed: float = 0):
     global _cmd_vel
     msg = Twist()
     msg.linear.x = forward_speed
     msg.angular.z = turn_speed
     _cmd_vel.publish(msg)
+
+
 def get_pose_target2(pose, num):
     p = []
     for i in [num]:
         if pose[i][2] > 0:
             p.append(pose[i])
-            
+
     if len(p) == 0:
         return -1, -1, -1
     return int(p[0][0]), int(p[0][1]), 1
+
 
 def turn_to(angle: float, speed: float):
     global _imu
@@ -222,7 +230,6 @@ def turn(angle: float):
     turn_to(target, 0.1)
 
 
-
 def set_gripper(angle, t):
     service_name = "/goal_tool_control"
     rospy.wait_for_service(service_name)
@@ -260,12 +267,13 @@ def get_pose_target(pose, num):
         return -1, -1
     return int(p[0][0]), int(p[0][1])
 
+
 def get_real_xyz(dp, x, y, num):
-    a1=49.5
-    b1=60.0
+    a1 = 49.5
+    b1 = 60.0
     if num == 2:
-        a1=55.0
-        b1=86.0
+        a1 = 55.0
+        b1 = 86.0
     a = a1 * np.pi / 180
     b = b1 * np.pi / 180
     d = dp[y][x]
@@ -328,61 +336,77 @@ def set_joints(joint1, joint2, joint3, joint4, t):
     except Exception as e:
         rospy.loginfo("%s" % e)
         return False
+
+
 def move_to(x, y, z, t):
     service_name = "/goal_task_space_path_position_only"
     rospy.wait_for_service(service_name)
-    
+
     try:
         service = rospy.ServiceProxy(service_name, SetKinematicsPose)
-        
+
         request = SetKinematicsPoseRequest()
         request.end_effector_name = "gripper"
         request.kinematics_pose.pose.position.x = x
         request.kinematics_pose.pose.position.y = y
         request.kinematics_pose.pose.position.z = z
         request.path_time = t
-        
+
         response = service(request)
         return response
     except Exception as e:
         rospy.loginfo("%s" % e)
         return False
+
+
 def say(a):
     global publisher_speaker
     publisher_speaker.publish(a)
 
-#callback
+
+# callback
 def callback_imu(msg):
     global _imu
     _imu = msg
+
+
 def callback_voice(msg):
     global s
     s = msg.text
-#astrapro
+
+
+# astrapro
 def callback_image1(msg):
     global _image1
     _image1 = CvBridge().imgmsg_to_cv2(msg, "bgr8")
+
+
 def callback_depth1(msg):
     global _depth1
     _depth1 = CvBridge().imgmsg_to_cv2(msg, "passthrough")
-#gemini2
+
+
+# gemini2
 def callback_image(msg):
     global _frame
     _frame = CvBridge().imgmsg_to_cv2(msg, "bgr8")
+
+
 def callback_depth(msg):
     global _depth
     _depth = CvBridge().imgmsg_to_cv2(msg, "passthrough")
 
-if __name__ == "__main__":    
+
+if __name__ == "__main__":
     rospy.init_node("demo")
     rospy.loginfo("demo node start!")
 
-    #main
+    # main
     print("astra rgb")
     _image1 = None
     _topic_image1 = "/cam2/rgb/image_raw"
     rospy.Subscriber(_topic_image1, Image, callback_image1)
-    
+
     print("astra depth")
     _depth1 = None
     _topic_depth1 = "/cam2/depth/image_raw"
@@ -393,10 +417,10 @@ if __name__ == "__main__":
     rospy.Subscriber("/camera/color/image_raw", Image, callback_image)
 
     print("gemini2 depth")
-    _depth= None
+    _depth = None
     rospy.Subscriber("/camera/depth/image_raw", Image, callback_depth)
 
-    s=""
+    s = ""
     print("cmd_vel")
     _cmd_vel = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
 
@@ -405,111 +429,119 @@ if __name__ == "__main__":
     publisher_speaker = rospy.Publisher("/speaker/say", String, queue_size=10)
 
     print("arm")
-    t=3.0
+    t = 3.0
     open_gripper(t)
 
-
-    #change model
+    # change model
     print("yolov8")
     Kinda = np.loadtxt(RosPack().get_path("mr_dnn") + "/Kinda.csv")
-    dnn_yolo = Yolov8("bagv4",device_name="GPU")
-    dnn_yolo.classes = ['obj']
+    dnn_yolo1 = Yolov8("bagv4", device_name="GPU")
+    dnn_yolo1.classes = ['obj']
 
-    #two yolo
-    
+    dnn_yolo2 = Yolov8("yolov8n", device_name="GPU")
+
+    dnn_yolo3 = Yolov8("people", device_name="GPU")
+    dnn_yolo3.classes = ['obj']
+
+
+
+    # two yolo
+
     print("pose")
     net_pose = HumanPoseEstimation(device_name="GPU")
 
     print("waiting imu")
     topic_imu = "/imu/data"
-    _imu=None
+    _imu = None
     rospy.Subscriber(topic_imu, Imu, callback_imu)
     rospy.wait_for_message(topic_imu, Imu)
 
     print("chassis")
     chassis = RobotChassis()
-    
+
     _fw = FollowMe()
 
     print("finish loading, start")
-    h,w,c = _image1.shape
-    img = np.zeros((h,w*2,c),dtype=np.uint8)
-    img[:h,:w,:c] = _image1
-    img[:h,w:,:c] = _frame
-    slocnt=0
+    h, w, c = _image1.shape
+    img = np.zeros((h, w * 2, c), dtype=np.uint8)
+    img[:h, :w, :c] = _image1
+    img[:h, w:, :c] = _frame
+    slocnt = 0
     # u_var
     d, one, mask, key, is_turning = 1, 0, 0, 0, False
     ax, ay, az, bx, by, bz = 0, 0, 0, 0, 0, 0
     pre_x, pre_z, haiya, bruh, lcnt, rcnt, run, p_cnt, focnt = 0.0, 0.0, 0, 0, 0, 0, 0, 0, 1
     pos, cnt_list = [2.77, 1.82, 0.148], []
-    pre_s=""
+    pre_s = ""
     # main var
     t, ee, s = 3.0, "", ""
-    step="get_bag"
-    action="none"
-    move_turn="none"
+    step = "get_bag"
+    action = "none"
+    move_turn = "none"
     # wait for prepare
     print("start")
     time.sleep(10)
-    need_position=[]
-    lr="middle"
+    need_position = []
+    lr = "middle"
     # var in camera
-    px, py, pz, pree_cx, pree_cy,= 0,0,0,0,0
-    posecnt=0
-    move_turn="turn"
-    #senser var
-    class_need=0
+    px, py, pz, pree_cx, pree_cy, = 0, 0, 0, 0, 0
+    posecnt = 0
+    move_turn = "turn"
+    # senser var
+    class_need = 0
     closest_person = None
-    move_to(0.287,0,0.193,3.0)
+    move_to(0.287, 0, 0.193, 3.0)
     time.sleep(2)
-    move_to(0.30,0.019,0.0,3.0)
+    move_to(0.30, 0.019, 0.0, 3.0)
     time.sleep(3)
-    move_to(0.25,0.019,0.0,3.0)
+    move_to(0.25, 0.019, 0.0, 3.0)
     time.sleep(2)
-    move_to(0.20,0.019,0.0,3.0)
+    move_to(0.20, 0.019, 0.0, 3.0)
     time.sleep(3)
+
+    queue_people_cnt=0
     '''
     joint1, joint2, joint3, joint4 = 0.087,1.354,0.758,-1.795
     set_joints(joint1, joint2, joint3, joint4, 1)
     time.sleep(t)'''
     while not rospy.is_shutdown():
-        #voice check
-        #break
-        if s!="" and s!=pre_s:
+        # voice check
+        # break
+        if s != "" and s != pre_s:
             print(s)
             pre_s = s
-        
+
         rospy.Rate(10).sleep()
         if _frame is None: print("gemini2 rgb none")
         if _depth is None: print("gemini2 depth none")
         if _depth1 is None: print("astra depth none")
         if _image1 is None: print("astra rgb none")
-        
+
         if _depth is None or _image1 is None or _depth1 is None or _frame is None: continue
-        
-        #var needs in while
-        cx1,cx2,cy1,cy2=0,0,0,0
-        detection_list=[]
+
+        # var needs in while
+        cx1, cx2, cy1, cy2 = 0, 0, 0, 0
+        detection_list = []
 
         down_image = _frame.copy()
         down_depth = _depth.copy()
-        up_image= _image1.copy()
-        up_depth= _depth1.copy()
-        if step=="get_bag":
-            #yolov8 detect
-            detections = dnn_yolo.forward(down_image)[0]["det"]
+        up_image = _image1.copy()
+        up_depth = _depth1.copy()
+        if step == "get_bag":
+            # yolov8 detect
+            detections = dnn_yolo1.forward(down_image)[0]["det"]
             for i, detection in enumerate(detections):
-                #print(detection)
+                # print(detection)
                 x1, y1, x2, y2, score, class_id = map(int, detection)
                 score = detection[4]
                 cx = (x2 - x1) // 2 + x1
                 cy = (y2 - y1) // 2 + y1
                 if score > 0.65 and class_id == class_need:
-                    detection_list.append([x1,y1,x2,y2,cx,cy])
+                    detection_list.append([x1, y1, x2, y2, cx, cy])
                     cv2.rectangle(down_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
                     cv2.circle(down_image, (cx, cy), 5, (0, 255, 0), -1)
                     print("bag score:", score)
-            #pose detect
+            # pose detect
             A = []
             B = []
             yu = 0
@@ -522,58 +554,61 @@ if __name__ == "__main__":
                     a_num, b_num = 9, 7
                     A = list(map(int, poses[0][a_num][:2]))
                     if (640 >= A[0] >= 0 and 320 >= A[1] >= 0):
-                        ax, ay, az = get_real_xyz(depth2, A[0], A[1])
+                        ax, ay, az = get_real_xyz(up_depth, A[0], A[1])
                         yu += 1
                     B = list(map(int, poses[0][b_num][:2]))
                     if (640 >= B[0] >= 0 and 320 >= B[1] >= 0):
-                        bx, by, bz = get_real_xyz(depth2, B[0], B[1])
+                        bx, by, bz = get_real_xyz(up_depth, B[0], B[1])
                         yu += 1
             print(A, B)
             if len(A) != 0 and yu >= 2:
                 cv2.circle(up_image, (A[0], A[1]), 3, (0, 255, 0), -1)
             if len(B) != 0 and yu >= 2:
                 cv2.circle(up_image, (B[0], B[1]), 3, (0, 255, 0), -1)
-        
-        #if step=="none": continue
-        if step=="get_bag":
-                
-        
+
+        # if step=="none": continue
+        if step == "get_bag":
+
             if len(A) != 0 and len(B) != 0:
-        
-                ax=A[0]
-                if len(detection_list) < 1: 
+
+                ax = A[0]
+                if len(detection_list) < 1:
                     print("no bag")
-                    
-                if len(detection_list)<=2 and len(detection_list)>0:
-                    sort_detection=sorted(detection_list, key=(lambda x:x[0]))
+
+                if len(detection_list) <= 2 and len(detection_list) > 0:
+                    sort_detection = sorted(detection_list, key=(lambda x: x[0]))
                     print(detection_list)
-                    if len(detection_list)==1:
-                        need_position=sort_detection[0]
+                    if len(detection_list) == 1:
+                        need_position = sort_detection[0]
                     else:
-                        
-                        if posecnt==0:
-                            if ax>0: lr="left"
-                            else: lr="right"
-                            posecnt+=1
-                        if lr=="left": need_position=sort_detection[0]
-                        else: need_position=sort_detection[1]
-                    
+
+                        if posecnt == 0:
+                            if ax > 0:
+                                lr = "left"
+                            else:
+                                lr = "right"
+                            posecnt += 1
+                        if lr == "left":
+                            need_position = sort_detection[0]
+                        else:
+                            need_position = sort_detection[1]
+
                     print(need_position)
                     print("ho")
                     x1, y1, x2, y2, cx2, cy2 = map(int, need_position)
                     cv2.rectangle(down_image, (x1, y1), (x2, y2), (0, 0, 255), 2)
                     cv2.circle(down_image, (cx2, cy2), 5, (0, 0, 255), -1)
 
-                    #capture evidence
+                    # capture evidence
                     now = datetime.datetime.now()
                     filename = now.strftime("%Y-%m-%d_%H-%M-%S.jpg")
                     output_dir = "/home/pcms/catkin_ws/src/beginner_tutorials/src/m1_evidence/"
                     cv2.imwrite(output_dir + filename, down_image)
-                    if move_turn=="turn":
-                        
-                        h,w,c = down_image.shape
+                    if move_turn == "turn":
+
+                        h, w, c = down_image.shape
                         x1, y1, x2, y2, cx2, cy2 = map(int, need_position)
-                        e = w//2 - cx2
+                        e = w // 2 - cx2
                         v = 0.001 * e
                         if v > 0:
                             v = min(v, 0.3)
@@ -583,42 +618,42 @@ if __name__ == "__main__":
                         print(e)
                         if abs(e) <= 3:
                             say("walk")
-                            action="front"
-                            move_turn="none"
-                            step="none"
+                            action = "front"
+                            move_turn = "none"
+                            step = "none"
                             print("ys")
-        
-        if step=="check_voice":
-             if "thank" in s or "stop" in s or "now" in s or "Thank" in s or "Stop" in s or "THANK" in s or "STOP" in s or "NOW" in s or "you" in s or "You" in s:
-                action="none"
+
+        if step == "check_voice":
+            if "thank" in s or "stop" in s or "now" in s or "Thank" in s or "Stop" in s or "THANK" in s or "STOP" in s or "NOW" in s or "you" in s or "You" in s:
+                action = "none"
                 say("I will go back now, bye bye")
                 joint1, joint2, joint3, joint4 = 0.000, 0.0, 0, 1.2
                 set_joints(joint1, joint2, joint3, joint4, 1)
                 time.sleep(t)
                 open_gripper(t)
                 time.sleep(3)
-                joint1, joint2, joint3, joint4 = 0.000, -1.0, 0.3,0.70
+                joint1, joint2, joint3, joint4 = 0.000, -1.0, 0.3, 0.70
                 set_joints(joint1, joint2, joint3, joint4, 1)
-                
-                time.sleep(2.5)
-                joint1, joint2, joint3, joint4 = 1.7,-1.052,0.376,0.696
-                set_joints(joint1, joint2, joint3, joint4, 3)
-                
-                time.sleep(3)
-                action="back1"
-                step="none"
 
-        if action=="front":
+                time.sleep(2.5)
+                joint1, joint2, joint3, joint4 = 1.7, -1.052, 0.376, 0.696
+                set_joints(joint1, joint2, joint3, joint4, 3)
+
+                time.sleep(3)
+                action = "back1"
+                step = "none"
+
+        if action == "front":
             print("front")
             cx, cy = w // 2, h // 2
             for i in range(cy + 1, h):
                 if _depth[cy][cx] == 0 or 0 < _depth[i][cx] < _depth[cy][cx]:
-                    cy = i 
-            _,_,d = get_real_xyz(_depth,cx,cy,2)
+                    cy = i
+            _, _, d = get_real_xyz(_depth, cx, cy, 2)
             while d > 0 or abs(e) >= 10:
-                _,_,d1 = get_real_xyz(_depth,cx,cy,2)
-                e = d1 - 400 #number is he last distance
-                if e<=10:
+                _, _, d1 = get_real_xyz(_depth, cx, cy, 2)
+                e = d1 - 400  # number is he last distance
+                if e <= 10:
                     break
                 v = 0.001 * e
                 if v > 0:
@@ -628,94 +663,113 @@ if __name__ == "__main__":
                 print(d1, e, v)
                 move(v, 0)
             print("got there")
-            joint1, joint2, joint3, joint4 = 0.087,1.354,0.758,-1.795
+            joint1, joint2, joint3, joint4 = 0.087, 1.354, 0.758, -1.795
             set_joints(joint1, joint2, joint3, joint4, 1)
             time.sleep(3)
-            action="grap"
-            move_turn="none"
-            step="none"
-            
-        if action=="grap":
-            
-            for i in range(1500): move(0.2,0)
-            
+            action = "grap"
+            move_turn = "none"
+            step = "none"
+
+        if action == "grap":
+
+            for i in range(1500): move(0.2, 0)
+
             say("I get it")
             time.sleep(t)
-            
+
             close_gripper(t)
             time.sleep(2)
-            joint1, joint2, joint3, joint4 = 0.087,1.354,0.758,-1.795
+            joint1, joint2, joint3, joint4 = 0.087, 1.354, 0.758, -1.795
             set_joints(joint1, joint2, joint3, joint4, 1)
             time.sleep(t)
-            
+
             joint1, joint2, joint3, joint4 = -0.106, 0.419, 0.365, -1.4
             set_joints(joint1, joint2, joint3, joint4, t)
             time.sleep(t)
-            joint1, joint2, joint3, joint4 = 0,0,0, -1.0
+            joint1, joint2, joint3, joint4 = 0, 0, 0, -1.0
             set_joints(joint1, joint2, joint3, joint4, t)
             time.sleep(t)
             time.sleep(3)
             say("I will follow you now")
-            for i in range(50000): move(-0.2,0)
-            
-            action="follow"
-            
-            
-            
-        
-        if action=="follow":
-            print('follow')
-            msg=Twist()
-            x, z, up_image,yn = _fw.calc_cmd_vel(up_image, up_depth)
-            print("turn_x_z:", x, z)
-            if yn=="no":
-                x,z=0,0
-                if slocnt>=5:
-                    say("slower")
-                    slocnt=0
-                slocnt+=1
-            else:
-                slocnt=0
-                
-            move(x,z)
-            step="check_voice"
-        if action=="back1":
-            turn(180)
-            detections = dnn_yolo.forward(down_image)[0]["det"]
+            for i in range(50000): move(-0.2, 0)
 
-            #nearest people
-            nx=0
+            action = "follow"
+
+        if action == "follow":
+            print('follow')
+            msg = Twist()
+            detections = dnn_yolo2.forward(down_image)[0]["det"]
+            #clothes_yolo
+            # nearest people
+            nx = 1500
+            cx_n,cy_n=0,0
             for i, detection in enumerate(detections):
-                #print(detection)
+                # print(detection)
                 x1, y1, x2, y2, score, class_id = map(int, detection)
                 score = detection[4]
                 cx = (x2 - x1) // 2 + x1
                 cy = (y2 - y1) // 2 + y1
-                #depth=find_depsth
-                if score > 0.65 and class_id == 0:
-                    detection_list.append([x1,y1,x2,y2,cx,cy])
+                # depth=find_depsth
+                _, _, d = get_real_xyz(up_depth, cx, cy, 2)
+                if score > 0.5 and class_id == 0 and d<=nx:
+                    detection_list.append([x1, y1, x2, y2, cx, cy])
                     cv2.rectangle(down_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
                     cv2.circle(down_image, (cx, cy), 5, (0, 255, 0), -1)
                     print("bag score:", score)
-            while abs(e)>3:
-                h,w,c = down_image.shape
-                e = w//2 - nx
+                    nx=d
+                    cx_n, cy_n = cx,cy
+
+            x, z, up_image, yn = _fw.calc_cmd_vel(up_image, up_depth, cx_n, cy_n)
+            print("turn_x_z:", x, z)
+            if yn == "no":
+                x, z = 0, 0
+                if slocnt >= 5:
+                    say("slower")
+                    slocnt = 0
+                slocnt += 1
+            else:
+                slocnt = 0
+
+            move(x, z)
+
+            step = "check_voice"
+        if action == "back1":
+            turn(180)
+            detections = dnn_yolo2.forward(down_image)[0]["det"]
+
+            # nearest people
+            nx = 0
+            for i, detection in enumerate(detections):
+                # print(detection)
+                x1, y1, x2, y2, score, class_id = map(int, detection)
+                score = detection[4]
+                cx = (x2 - x1) // 2 + x1
+                cy = (y2 - y1) // 2 + y1
+                # depth=find_depsth
+                if score > 0.65 and class_id == 0:
+                    detection_list.append([x1, y1, x2, y2, cx, cy])
+                    cv2.rectangle(down_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    cv2.circle(down_image, (cx, cy), 5, (0, 255, 0), -1)
+                    print("bag score:", score)
+            while abs(e) > 3:
+                h, w, c = down_image.shape
+                e = w // 2 - nx
                 v = 0.001 * e
                 if v > 0:
                     v = min(v, 0.3)
                 if v < 0:
                     v = max(v, -0.3)
                 move(0, v)
-                print("error",e)
+                print("error", e)
             cx, cy = w // 2, h // 2
             for i in range(cy + 1, h):
                 if _depth[cy][cx] == 0 or 0 < _depth[i][cx] < _depth[cy][cx]:
-                    cy = i 
-            _,_,d = get_real_xyz(_depth,cx,cy,2)
+                    cy = i
+            _, _, d = get_real_xyz(_depth, cx, cy, 2)
             while d > 0 or abs(e) >= 30:
-                _,_,d1 = get_real_xyz(_depth,cx,cy,2)
-                e = d1 - 400 #number is he last distance
-                if e<=10:
+                _, _, d1 = get_real_xyz(_depth, cx, cy, 2)
+                e = d1 - 400  # number is he last distance
+                if e <= 10:
                     break
                 v = 0.001 * e
                 if v > 0:
@@ -724,9 +778,51 @@ if __name__ == "__main__":
                     v = max(v, -0.2)
                 print(d1, e, v)
                 move(v, 0)
+            say("I am in the queue")
+            action="back3"
+        if action == "back3":
+            #queue_people_cnt
+
+            detections = dnn_yolo3.forward(down_image)[0]["det"]
+            nx = 1500
+            cx_n, cy_n = 0, 0
+            for i, detection in enumerate(detections):
+                # print(detection)
+                x1, y1, x2, y2, score, class_id = map(int, detection)
+                score = detection[4]
+                cx = (x2 - x1) // 2 + x1
+                cy = (y2 - y1) // 2 + y1
+                # depth=find_depsth
+                _, _, d = get_real_xyz(up_depth, cx, cy, 2)
+                if score > 0.5 and class_id == 0 and d <= nx:
+                    queue_people_cnt=0
+                    detection_list.append([x1, y1, x2, y2, cx, cy])
+                    cv2.rectangle(down_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    cv2.circle(down_image, (cx, cy), 5, (0, 255, 0), -1)
+                    nx = d
+                    cx_n, cy_n = cx, cy
+                else:
+                    queue_people_cnt+=1
+            if queue_people_cnt==0:
+                x, z, up_image, yn = _fw.calc_cmd_vel(up_image, up_depth, cx_n, cy_n)
+                print("turn_x_z:", x, z)
+                if yn == "no":
+                    x, z = 0, 0
+                    if slocnt >= 5:
+                        say("slower")
+                        slocnt = 0
+                    slocnt += 1
+                else:
+                    slocnt = 0
+
+                move(x, z)
+            if queue_people_cnt>=10:
+                say("I am going back")
+                action="back2"
+
         if action == "back2":
-            chassis.move_to(-1.36,-6.98,0.187)
-            #checking
+            chassis.move_to(-1.36, -6.98, 0.187)
+            # checking
             while not rospy.is_shutdown():
                 # 4. Get the chassis status.
                 code = chassis.status_code
@@ -735,15 +831,15 @@ if __name__ == "__main__":
                     break
             time.sleep(1)
             break
-        
-        h,w,c = up_image.shape
-        upout=cv2.line(up_image, (320,0), (320,500), (0,255,0), 5)
-        downout=cv2.line(down_image, (320,0), (320,500), (0,255,0), 5)
-        img = np.zeros((h,w*2,c),dtype=np.uint8)
-        img[:h,:w,:c] = upout
-        img[:h,w:,:c] = downout
-        
-        cv2.imshow("frame", img)   
+
+        h, w, c = up_image.shape
+        upout = cv2.line(up_image, (320, 0), (320, 500), (0, 255, 0), 5)
+        downout = cv2.line(down_image, (320, 0), (320, 500), (0, 255, 0), 5)
+        img = np.zeros((h, w * 2, c), dtype=np.uint8)
+        img[:h, :w, :c] = upout
+        img[:h, w:, :c] = downout
+
+        cv2.imshow("frame", img)
         key = cv2.waitKey(1)
         if key in [ord('q'), 27]:
             break
