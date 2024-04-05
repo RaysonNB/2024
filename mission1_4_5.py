@@ -19,7 +19,7 @@ from sensor_msgs.msg import Imu
 from typing import Tuple, List
 from RobotChassis import RobotChassis
 import datetime
-
+from std_srvs.srv import Empty
 
 class FollowMe(object):
     def __init__(self) -> None:
@@ -476,6 +476,10 @@ if __name__ == "__main__":
     # main var
     t, ee, s = 3.0, "", ""
     step = "get_bag"
+
+
+    clear_costmaps = rospy.ServiceProxy("/move_base/clear_costmaps", Empty)
+    
     action = "none"
     move_turn = "none"
     # wait for prepare
@@ -733,6 +737,7 @@ if __name__ == "__main__":
 
             step = "check_voice"
         if action == "back2":
+            clear_costmaps
             chassis.move_to(-1.36, -6.98, 0.187)
             # checking
             while not rospy.is_shutdown():
