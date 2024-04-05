@@ -640,7 +640,7 @@ if __name__ == "__main__":
                 set_joints(joint1, joint2, joint3, joint4, 3)
 
                 time.sleep(3)
-                action = "back1"
+                action = "back3"
                 step = "none"
 
         if action == "front":
@@ -711,14 +711,13 @@ if __name__ == "__main__":
                 cy = (y2 - y1) // 2 + y1
                 # depth=find_depsth
                 _, _, d = get_real_xyz(up_depth, cx, cy, 2)
-                if score > 0.5 and class_id == 0 and d<=nx:
+                if score > 0.6 and class_id == 0 and d<=nx:
                     detection_list.append([x1, y1, x2, y2, cx, cy])
                     cv2.rectangle(down_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
                     cv2.circle(down_image, (cx, cy), 5, (0, 255, 0), -1)
                     print("bag score:", score)
                     nx=d
                     cx_n, cy_n = cx,cy
-
             x, z, up_image, yn = _fw.calc_cmd_vel(up_image, up_depth, cx_n, cy_n)
             print("turn_x_z:", x, z)
             if yn == "no":
@@ -733,93 +732,6 @@ if __name__ == "__main__":
             move(x, z)
 
             step = "check_voice"
-        if action == "back1":
-            turn(180)
-            detections = dnn_yolo2.forward(down_image)[0]["det"]
-
-            # nearest people
-            nx = 0
-            for i, detection in enumerate(detections):
-                # print(detection)
-                x1, y1, x2, y2, score, class_id = map(int, detection)
-                score = detection[4]
-                cx = (x2 - x1) // 2 + x1
-                cy = (y2 - y1) // 2 + y1
-                # depth=find_depsth
-                if score > 0.65 and class_id == 0:
-                    detection_list.append([x1, y1, x2, y2, cx, cy])
-                    cv2.rectangle(down_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                    cv2.circle(down_image, (cx, cy), 5, (0, 255, 0), -1)
-                    print("bag score:", score)
-            while abs(e) > 3:
-                h, w, c = down_image.shape
-                e = w // 2 - nx
-                v = 0.001 * e
-                if v > 0:
-                    v = min(v, 0.3)
-                if v < 0:
-                    v = max(v, -0.3)
-                move(0, v)
-                print("error", e)
-            cx, cy = w // 2, h // 2
-            for i in range(cy + 1, h):
-                if _depth[cy][cx] == 0 or 0 < _depth[i][cx] < _depth[cy][cx]:
-                    cy = i
-            _, _, d = get_real_xyz(_depth, cx, cy, 2)
-            while d > 0 or abs(e) >= 30:
-                _, _, d1 = get_real_xyz(_depth, cx, cy, 2)
-                e = d1 - 400  # number is he last distance
-                if e <= 10:
-                    break
-                v = 0.001 * e
-                if v > 0:
-                    v = min(v, 0.2)
-                if v < 0:
-                    v = max(v, -0.2)
-                print(d1, e, v)
-                move(v, 0)
-            say("I am in the queue")
-            action="back3"
-        if action == "back3":
-            #queue_people_cnt
-
-            detections = dnn_yolo3.forward(down_image)[0]["det"]
-            nx = 1500
-            cx_n, cy_n = 0, 0
-            for i, detection in enumerate(detections):
-                # print(detection)
-                x1, y1, x2, y2, score, class_id = map(int, detection)
-                score = detection[4]
-                cx = (x2 - x1) // 2 + x1
-                cy = (y2 - y1) // 2 + y1
-                # depth=find_depsth
-                _, _, d = get_real_xyz(up_depth, cx, cy, 2)
-                if score > 0.5 and class_id == 0 and d <= nx:
-                    queue_people_cnt=0
-                    detection_list.append([x1, y1, x2, y2, cx, cy])
-                    cv2.rectangle(down_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                    cv2.circle(down_image, (cx, cy), 5, (0, 255, 0), -1)
-                    nx = d
-                    cx_n, cy_n = cx, cy
-                else:
-                    queue_people_cnt+=1
-            if queue_people_cnt==0:
-                x, z, up_image, yn = _fw.calc_cmd_vel(up_image, up_depth, cx_n, cy_n)
-                print("turn_x_z:", x, z)
-                if yn == "no":
-                    x, z = 0, 0
-                    if slocnt >= 5:
-                        say("slower")
-                        slocnt = 0
-                    slocnt += 1
-                else:
-                    slocnt = 0
-
-                move(x, z)
-            if queue_people_cnt>=10:
-                say("I am going back")
-                action="back2"
-
         if action == "back2":
             chassis.move_to(-1.36, -6.98, 0.187)
             # checking
