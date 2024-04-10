@@ -24,26 +24,6 @@ from std_srvs.srv import Empty
 class FollowMe(object):
     def __init__(self) -> None:
         self.pre_x, self.pre_z = 0.0, 0.0
-    '''
-    def find_cx_cy(self) -> Tuple[int, int]:
-        global up_image, up_depth, net_pose
-
-        detections = dnn_clothes.forward(down_image)[0]["det"]
-        for i, detection in enumerate(detections):
-            # print(detection)
-            x1, y1, x2, y2, score, class_id = map(int, detection)
-            score = detection[4]
-            cx = (x2 - x1) // 2 + x1
-            cy = (y2 - y1) // 2 + y1
-            gggd = self.get_real_xyz(up_depth, cx, cy)
-            if score > 0.65 and class_id == class_need and gggd <= 1500:
-                detection_list.append([x1, y1, x2, y2, cx, cy])
-                cv2.rectangle(down_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                cv2.circle(down_image, (cx, cy), 5, (0, 255, 0), -1)
-                print("bag score:", score)
-                break
-
-        return int(cx), int(cy), up_image, "yes"'''
 
     def get_pose_target(self, pose, num):
         p = []
@@ -58,9 +38,11 @@ class FollowMe(object):
     def get_real_xyz(self, depth, x: int, y: int) -> Tuple[float, float, float]:
         if x < 0 or y < 0:
             return 0, 0, 0
-
-        a = 49.5 * np.pi / 180
-        b = 60.0 * np.pi / 180
+        a1 = 55.0
+        b1 = 86.0
+        a = a1 * np.pi / 180
+        b = b1 * np.pi / 180
+        
         d = depth[y][x]
         h, w = depth.shape[:2]
         if d == 0:
@@ -387,14 +369,14 @@ def callback_depth1(msg):
 
 
 # gemini2
-def callback_image(msg):
-    global _frame
-    _frame = CvBridge().imgmsg_to_cv2(msg, "bgr8")
+def callback_image2(msg):
+    global _frame2
+    _frame2 = CvBridge().imgmsg_to_cv2(msg, "bgr8")
 
 
-def callback_depth(msg):
-    global _depth
-    _depth = CvBridge().imgmsg_to_cv2(msg, "passthrough")
+def callback_depth2(msg):
+    global _depth2
+    _depth2 = CvBridge().imgmsg_to_cv2(msg, "passthrough")
 
 
 if __name__ == "__main__":
@@ -404,21 +386,21 @@ if __name__ == "__main__":
     # main
     print("astra rgb")
     _image1 = None
-    _topic_image1 = "/cam2/rgb/image_raw"
+    _topic_image1 = "/cam3/color/image_raw"
     rospy.Subscriber(_topic_image1, Image, callback_image1)
 
     print("astra depth")
     _depth1 = None
-    _topic_depth1 = "/cam2/depth/image_raw"
+    _topic_depth1 = "/cam3/depth/image_raw"
     rospy.Subscriber(_topic_depth1, Image, callback_depth1)
 
     print("gemini2 rgb")
-    _frame = None
-    rospy.Subscriber("/camera/color/image_raw", Image, callback_image)
+    _frame2 = None
+    rospy.Subscriber("/cam4/color/image_raw", Image, callback_image2)
 
     print("gemini2 depth")
-    _depth = None
-    rospy.Subscriber("/camera/depth/image_raw", Image, callback_depth)
+    _depth2 = None
+    rospy.Subscriber("/cam4/depth/image_raw", Image, callback_depth2)
 
     s = ""
     print("cmd_vel")
@@ -438,15 +420,10 @@ if __name__ == "__main__":
     dnn_yolo1 = Yolov8("bagv4", device_name="GPU")
     dnn_yolo1.classes = ['obj']
 
-    dnn_yolo2 = Yolov8("yolov8n", device_name="GPU")
-
-    dnn_yolo3 = Yolov8("people", device_name="GPU")
-    dnn_yolo3.classes = ['obj']
-
-
-
+    dnn_yolo2 = Yolov8("logo", device_name="GPU")
+    dnn_yolo2.classes = ['obj']
     # two yolo
-
+    
     print("pose")
     net_pose = HumanPoseEstimation(device_name="GPU")
 
@@ -465,7 +442,7 @@ if __name__ == "__main__":
     h, w, c = _image1.shape
     img = np.zeros((h, w * 2, c), dtype=np.uint8)
     img[:h, :w, :c] = _image1
-    img[:h, w:, :c] = _frame
+    img[:h, w:, :c] = _frame2
     slocnt = 0
     # u_var
     d, one, mask, key, is_turning = 1, 0, 0, 0, False
@@ -516,10 +493,10 @@ if __name__ == "__main__":
             pre_s = s
 
         rospy.Rate(10).sleep()
-        if _frame is None: print("gemini2 rgb none")
-        if _depth is None: print("gemini2 depth none")
-        if _depth1 is None: print("astra depth none")
-        if _image1 is None: print("astra rgb none")
+        if _frame2 is None: print("down rgb none")
+        if _dept2h is None: print("down depth none")
+        if _depth1 is None: print("up depth none")
+        if _image1 is None: print("up rgb none")
 
         if _depth is None or _image1 is None or _depth1 is None or _frame is None: continue
 
@@ -527,8 +504,8 @@ if __name__ == "__main__":
         cx1, cx2, cy1, cy2 = 0, 0, 0, 0
         detection_list = []
 
-        down_image = _frame.copy()
-        down_depth = _depth.copy()
+        down_image = _frame2.copy()
+        down_depth = _depth2.copy()
         up_image = _image1.copy()
         up_depth = _depth1.copy()
         if step == "get_bag":
