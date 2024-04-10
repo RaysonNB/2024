@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+from ultralytics import YOLO
+from pathlib import Path
+
+
+path = "C:/Users/rayso_sq9ff/PycharmProjects/pythonProject12/yolov8n.pt"
+det_model = YOLO(path)
+label_map = det_model.model.names
+print(label_map)
+
+det_model.export(format="openvino", dynamic=True, half=False)
