@@ -307,10 +307,10 @@ if __name__ == "__main__":
     rospy.loginfo("demo node start!")
 
     frame2 = None
-    rospy.Subscriber("/camera/color/image_raw", Image, callback_image2)
+    rospy.Subscriber("/cam3/color/image_raw", Image, callback_image2)
 
     depth2 = None
-    rospy.Subscriber("/camera/depth/image_raw", Image, callback_depth2)
+    rospy.Subscriber("/cam3/depth/image_raw", Image, callback_depth2)
     s = ""
 
     print("speaker")
@@ -346,9 +346,7 @@ if __name__ == "__main__":
     sb = 0
     framecnt = 0
     bottlecnt = 0
-    detector1 = ColorDetector((170, 16, 16), (190, 255, 255))
-    detector2 = ColorDetector((0, 16, 16), (25, 255, 255))
-    detector3 = ColorDetector((45, 16, 16), (60, 255, 255))
+    #detector1 = ColorDetector((170, 16, 16), (190, 255, 255)
     bottlecolor = ["pink", "black", "yellow"]
     saidd = 0
     get_b = 0
@@ -357,12 +355,13 @@ if __name__ == "__main__":
         rospy.Rate(10).sleep()
 
         if frame2 is None:
-            print("frame2")
+            print("frame_down")
             continue
 
         if depth2 is None:
-            print("depth2")
+            print("depth_down")
             continue
+            
         if step == "fall":
             print(f_cnt)
             if f_cnt >= 5:
@@ -470,7 +469,7 @@ if __name__ == "__main__":
             outframe = frame2.copy()
             if step2 == "dead":
 
-                poses = net_pose.forward(frame2)
+                poses = net_pose.forward(outframe)
                 yu=0
                 if len(poses) > 0:
                     YN = -1
@@ -480,17 +479,17 @@ if __name__ == "__main__":
                         a_num, b_num = 9, 7
                         A = list(map(int, poses[0][a_num][:2]))
                         if (640 >= A[0] >= 0 and 320 >= A[1] >= 0):
-                            ax, ay, az = get_real_xyz(frame2, A[0], A[1])
+                            ax, ay, az = get_real_xyz(outframe, A[0], A[1])
                             yu += 1
                         B = list(map(int, poses[0][b_num][:2]))
                         if (640 >= B[0] >= 0 and 320 >= B[1] >= 0):
-                            bx, by, bz = get_real_xyz(frame2, B[0], B[1])
+                            bx, by, bz = get_real_xyz(outframe, B[0], B[1])
                             yu += 1
                 print(A, B)
                 if len(A) != 0 and yu >= 2:
-                    cv2.circle(frame2, (A[0], A[1]), 3, (0, 255, 0), -1)
+                    cv2.circle(outframe, (A[0], A[1]), 3, (0, 255, 0), -1)
                 if len(B) != 0 and yu >= 2:
-                    cv2.circle(frame2, (B[0], B[1]), 3, (0, 255, 0), -1)
+                    cv2.circle(outframe, (B[0], B[1]), 3, (0, 255, 0), -1)
                     # print(point)
 
                 TTT = 0
