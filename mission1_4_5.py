@@ -471,10 +471,9 @@ if __name__ == "__main__":
     # senser var
     class_need = 0
     closest_person = None
-    joint1, joint2, joint3, joint4 = 0.000, 1.4, 0.000, -1.5
+    joint1, joint2, joint3, joint4 = 0.087, 1.354, 0.758, -1.795
     set_joints(joint1, joint2, joint3, joint4, 1)
-    time.sleep(t)
-    open_gripper(t)
+    time.sleep(3)
     
 
     queue_people_cnt=0
@@ -495,7 +494,7 @@ if __name__ == "__main__":
         if _depth1 is None: print("up depth none")
         if _image1 is None: print("up rgb none")
 
-        if _depth is None or _image1 is None or _depth1 is None or _frame is None: continue
+        if _depth1 is None or _image1 is None or _depth2 is None or _frame2 is None: continue
 
         # var needs in while
         cx1, cx2, cy1, cy2 = 0, 0, 0, 0
@@ -625,11 +624,11 @@ if __name__ == "__main__":
             print("front")
             cx, cy = w // 2, h // 2
             for i in range(cy + 1, h):
-                if _depth[cy][cx] == 0 or 0 < _depth[i][cx] < _depth[cy][cx]:
+                if _depth2[cy][cx] == 0 or 0 < _depth2[i][cx] < _depth2[cy][cx]:
                     cy = i
-            _, _, d = get_real_xyz(_depth, cx, cy, 2)
+            _, _, d = get_real_xyz(_depth2, cx, cy, 2)
             while d > 0 or abs(e) >= 10:
-                _, _, d1 = get_real_xyz(_depth, cx, cy, 2)
+                _, _, d1 = get_real_xyz(_depth2, cx, cy, 2)
                 e = d1 - 400  # number is he last distance
                 if e <= 10:
                     break
@@ -710,7 +709,7 @@ if __name__ == "__main__":
             move(x, z)
 
             step = "check_voice"
-        if action == "back2":
+        if action == "back3":
             clear_costmaps
             chassis.move_to(-1.36, -6.98, 0.187)
             # checking
