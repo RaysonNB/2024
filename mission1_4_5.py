@@ -471,14 +471,11 @@ if __name__ == "__main__":
     # senser var
     class_need = 0
     closest_person = None
-    move_to(0.287, 0, 0.193, 3.0)
-    time.sleep(2)
-    move_to(0.30, 0.019, 0.0, 3.0)
-    time.sleep(3)
-    move_to(0.25, 0.019, 0.0, 3.0)
-    time.sleep(2)
-    move_to(0.20, 0.019, 0.0, 3.0)
-    time.sleep(3)
+    joint1, joint2, joint3, joint4 = 0.000, 1.4, 0.000, -1.5
+    set_joints(joint1, joint2, joint3, joint4, 1)
+    time.sleep(t)
+    open_gripper(t)
+    
 
     queue_people_cnt=0
     '''
