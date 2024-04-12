@@ -653,7 +653,7 @@ if __name__ == "__main__":
                 cntm = int((x - 0.25) * 1000 // 0.2)
                 for i in range(cntm): move(0.2, 0)
 
-            move_to(0.3, 0.019, 0.1, 3.0)
+            move_to(0.242, 0.019, 0.51, 3.0)
             time.sleep(2)
             print(x)
             time.sleep(t)
