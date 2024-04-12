@@ -16,7 +16,8 @@ from mr_voice.msg import Voice
 from std_msgs.msg import String
 from sensor_msgs.msg import Imu
 from tf.transformations import euler_from_quaternion
-
+from gtts import gTTS
+from playsound import playsound
 
 # gemini2
 def callback_image2(msg):
@@ -60,6 +61,7 @@ def get_real_xyz(dp, x, y):
     y = int(y) - int(h // 2)
     real_y = round(y * 2 * d * np.tan(a / 2) / h)
     real_x = round(x * 2 * d * np.tan(b / 2) / w)
+    print(real_x, real_y)
     return real_x, real_y, d
 
 def get_pose_target(pose, num):
@@ -71,11 +73,15 @@ def get_pose_target(pose, num):
     if len(p) == 0: return -1, -1
     return int(p[0][0]), int(p[0][1])
 
+def say(g):
+    tts = gTTS(g)
 
-def say(a):
-    global publisher_speaker
-    publisher_speaker.publish(a)
+    # Save the speech as an audio file
+    speech_file = "speech.mp3"
+    tts.save(speech_file)
 
+    # Play the speech
+    playsound(speech_file)
 
 def move(forward_speed: float = 0, turn_speed: float = 0):
     global _cmd_vel
@@ -307,10 +313,10 @@ if __name__ == "__main__":
     rospy.loginfo("demo node start!")
 
     frame2 = None
-    rospy.Subscriber("/cam3/color/image_raw", Image, callback_image2)
+    rospy.Subscriber("/cam1/color/image_raw", Image, callback_image2)
 
     depth2 = None
-    rospy.Subscriber("/cam3/depth/image_raw", Image, callback_depth2)
+    rospy.Subscriber("/cam1/depth/image_raw", Image, callback_depth2)
     s = ""
 
     print("speaker")
@@ -320,7 +326,7 @@ if __name__ == "__main__":
     dnn_yolo = Yolov8("yolov8n", device_name="GPU")
     print("yolo")
     net_pose = HumanPoseEstimation(device_name="GPU")
-    step = "get"  # remember
+    step = "givehim"  # remember
     f_cnt = 0
     step2 = "dead"  # remember
     ax, ay, az, bx, by, bz = 0, 0, 0, 0, 0, 0
@@ -335,14 +341,10 @@ if __name__ == "__main__":
     rospy.Subscriber(topic_imu, Imu, callback_imu)
     rospy.wait_for_message(topic_imu, Imu)
     say("start the program")
-    move_to(0.287, 0, 0.193, 1.0)
-    time.sleep(2)
-    move_to(0.30, 0.019, 0.1, 1.0)
-    time.sleep(3)
-    move_to(0.25, 0.019, 0.1, 1.0)
-    time.sleep(2)
-    move_to(0.20, 0.019, 0.1, 1.0)
-    time.sleep(2)
+    t=3.0
+    joint1, joint2, joint3, joint4 = 0.100,0.268,1.241,-1.379
+    set_joints(joint1, joint2, joint3, joint4, t)
+    time.sleep(t)
     sb = 0
     framecnt = 0
     bottlecnt = 0
@@ -365,12 +367,15 @@ if __name__ == "__main__":
         if step == "fall":
             print(f_cnt)
             if f_cnt >= 5:
+                '''
                 say("Do you need any help")
                 time.sleep(3)
                 say("Rather you need me to clip the bottle on the side?")
                 time.sleep(4)
                 say("I understand that you may not be feeling well. Let me help you pick up the medicine to make you more comfortable.")
-                time.sleep(6)
+                time.sleep(6)'''
+                say("are you ok")
+                time.sleep(3)
                 step = "get"
             detections = dnn_yolo.forward(frame2)[0]["det"]
 
@@ -388,6 +393,7 @@ if __name__ == "__main__":
                 px, py, pz = get_real_xyz(depth2, cx, cy)
                 print(pz)
                 if pz <= 1800:
+                    A,B=[],[]
                     pose = None
                     t_pose = None
                     points = []
@@ -401,11 +407,11 @@ if __name__ == "__main__":
                             a_num, b_num = 9, 7
                             A = list(map(int, poses[0][a_num][:2]))
                             if (640 >= A[0] >= 0 and 320 >= A[1] >= 0):
-                                ax, ay, az = get_real_xyz(frame2, A[0], A[1])
+                                ax, ay, az = get_real_xyz(depth2, A[0], A[1])
                                 yu += 1
                             B = list(map(int, poses[0][b_num][:2]))
                             if (640 >= B[0] >= 0 and 320 >= B[1] >= 0):
-                                bx, by, bz = get_real_xyz(frame2, B[0], B[1])
+                                bx, by, bz = get_real_xyz(depth2, B[0], B[1])
                                 yu += 1
                     print(A, B)
                     if len(A) != 0 and yu >= 2:
@@ -426,13 +432,16 @@ if __name__ == "__main__":
                     h = y2 - y1
                     # print("w: ",w,"h: ", h)
                     w, h = w, h
-                    if A[1] <= 200:
-                        fall += 1
-                        # print("cy")
+                    print("w",w,"h",h)
+                    print("Fall",f_cnt)
+                    if len(A) != 0:
+                        if A[1] <= 200:
+                            fall += 1
+                            # print("cy")
                     if h < w:
                         fall += 1
                         # print("h<w")
-                    if fall >= 1 and ikun == 99:
+                    if fall >= 1:
                         cv2.rectangle(frame2, (x1, y1), (x2, y2), (255, 255, 0), 5)
                         f_cnt += 1
                         # continue
@@ -463,12 +472,12 @@ if __name__ == "__main__":
                 cv2.putText(frame2, str(int(ind)), (cx, cy + 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 3)
                 ind += 1
                 px, py, pz = get_real_xyz(depth2, cx, cy)
-                cnt = get_distance(px, py, pz, ax, ay, az, bx, by, bz)
+                #cnt = get_distance(px, py, pz, ax, ay, az, bx, by, bz)
                 cv2.circle(frame2, (cx, cy), 5, (0, 255, 0), -1)
                 cv2.putText(frame2, str(int(pz)), (cx, cy), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
             outframe = frame2.copy()
             if step2 == "dead":
-
+                A,B=[],[]
                 poses = net_pose.forward(outframe)
                 yu=0
                 if len(poses) > 0:
@@ -479,11 +488,11 @@ if __name__ == "__main__":
                         a_num, b_num = 9, 7
                         A = list(map(int, poses[0][a_num][:2]))
                         if (640 >= A[0] >= 0 and 320 >= A[1] >= 0):
-                            ax, ay, az = get_real_xyz(outframe, A[0], A[1])
+                            ax, ay, az = get_real_xyz(depth2, A[0], A[1])
                             yu += 1
                         B = list(map(int, poses[0][b_num][:2]))
                         if (640 >= B[0] >= 0 and 320 >= B[1] >= 0):
-                            bx, by, bz = get_real_xyz(outframe, B[0], B[1])
+                            bx, by, bz = get_real_xyz(depth2, B[0], B[1])
                             yu += 1
                 print(A, B)
                 if len(A) != 0 and yu >= 2:
@@ -500,9 +509,9 @@ if __name__ == "__main__":
                 ggg = 0
                 flag = None
 
-                if yu>=2:
-                    ax, ay, az, bx, by, bz = A[0],A[1],A[2],B[0],B[1],B[2]
-
+                if yu>=2 and len(A)!=0 and len(B)!=0:
+                    print(ax, ay, az, bx, by, bz)# = A[0],A[1],A[2],B[0],B[1],B[2]
+                    
                     if len(bb) < 3:
                         if bottlecnt >= 3:
                             say("not enught bottle")
@@ -560,13 +569,15 @@ if __name__ == "__main__":
                 if b1 >= 10 or b2 >= 10 or b3 >= 10:
                     step2 = "turn"
                     gg = bb
+                    say("turn")
+                    
                 print("b1: %d b2: %d b3: %d" % (b1, b2, b3))
             if step2 == "turn":
                 if sb == 0:
 
-                    if mark == 0: say("the left bottle, which is the pink one")
-                    if mark == 1: say("the middle bottle, which is the black one")
-                    if mark == 2: say("the right bottle, which is the yellow one")
+                    if mark == 0: say("the left bottle")
+                    if mark == 1: say("the middle bottle")
+                    if mark == 2: say("the right bottle")
                     sb += 1
 
                 if len(bb) != 3: continue
@@ -590,7 +601,7 @@ if __name__ == "__main__":
                 if v < 0:
                     v = max(v, -0.2)
                 move(0, v)
-                if abs(e) <= 3:
+                if abs(e) <= 5:
                     step2 = "go"
 
             if step2 == "go":
@@ -637,6 +648,7 @@ if __name__ == "__main__":
                     step = "grap"
                     get_b = mark
                     step2 = "none"
+                    
         if step == "grap":
             t = 3.0
             open_gripper(t)
@@ -653,7 +665,10 @@ if __name__ == "__main__":
                 cntm = int((x - 0.25) * 1000 // 0.2)
                 for i in range(cntm): move(0.2, 0)
 
-            move_to(0.242, 0.019, 0.6, 3.0)
+            joint1, joint2, joint3, joint4 = 0.064,0.379,0.914,-1.147
+            set_joints(joint1, joint2, joint3, joint4, t)
+            time.sleep(t)
+            
             time.sleep(2)
             print(x)
             time.sleep(t)
@@ -663,11 +678,14 @@ if __name__ == "__main__":
             saidd = "I got the " + bottlecolor[get_b] + "bottle"
             say(saidd)
             #move_to(0.20, -0.1, 0.1, 3.0)
-            #time.sleep(2)
+            time.sleep(2)
             step = "givehim"
             # break
+            break
         if step == "givehim":
-            turn(30)
+            
+            for i in range(1000): move(-0.2, 0)
+            turn(40)
             step = "findg"
         if step == "findg":
             cx, cy = 0, 0
@@ -741,10 +759,11 @@ if __name__ == "__main__":
             step = "talk"
         if step == "talk":
             say("Is there anything else I can help you with?")
-            time.sleep(3)
+            #time.sleep(3)
             say("Do you feel better now? If you need any help, please let me know. I will do my best to assist you.")
-            time.sleep(5)
+            #time.sleep(5)
             step = "person1"
+            break
         if step == "person1":
             s = s.lower()
             print("s", s)
