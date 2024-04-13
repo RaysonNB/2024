@@ -324,9 +324,11 @@ if __name__ == "__main__":
     publisher_speaker = rospy.Publisher("/speaker/say", String, queue_size=10)
     print("load")
     dnn_yolo = Yolov8("yolov8n", device_name="GPU")
+    dnn_yolo1 = Yolov8("bottlev1", device_name="GPU")
+    dnn_yolo1.classes = ["botte","bottle_o","bottle_w","bottle_y"]
     print("yolo")
     net_pose = HumanPoseEstimation(device_name="GPU")
-    step = "givehim"  # remember
+    step = "fall"  # remember
     f_cnt = 0
     step2 = "dead"  # remember
     ax, ay, az, bx, by, bz = 0, 0, 0, 0, 0, 0
@@ -342,7 +344,7 @@ if __name__ == "__main__":
     rospy.wait_for_message(topic_imu, Imu)
     say("start the program")
     t=3.0
-    joint1, joint2, joint3, joint4 = 0.100,0.268,1.241,-1.379
+    joint1, joint2, joint3, joint4 = 0.100,0.268,1.241,-1.5
     set_joints(joint1, joint2, joint3, joint4, t)
     time.sleep(t)
     sb = 0
@@ -367,15 +369,15 @@ if __name__ == "__main__":
         if step == "fall":
             print(f_cnt)
             if f_cnt >= 5:
-                '''
+                
                 say("Do you need any help")
-                time.sleep(3)
+                #time.sleep(3)
                 say("Rather you need me to clip the bottle on the side?")
-                time.sleep(4)
+                #time.sleep(4)
                 say("I understand that you may not be feeling well. Let me help you pick up the medicine to make you more comfortable.")
-                time.sleep(6)'''
+                #time.sleep(6)
                 say("are you ok")
-                time.sleep(3)
+                #time.sleep(3)
                 step = "get"
             detections = dnn_yolo.forward(frame2)[0]["det"]
 
@@ -451,13 +453,13 @@ if __name__ == "__main__":
 
         if step == "get":
             bottle = []
-            detections = dnn_yolo.forward(frame2)[0]["det"]
+            detections = dnn_yolo1.forward(frame2)[0]["det"]
             al = []
             ind = 0
             for i, detection in enumerate(detections):
                 x1, y1, x2, y2, score, class_id = map(int, detection)
                 score = detection[4]
-                if class_id != 39: continue
+                #if class_id != 39: continue
                 if score < 0.3: continue
                 al.append([x1, y1, x2, y2, score, class_id])
                 print(float(score), class_id)
@@ -522,7 +524,7 @@ if __name__ == "__main__":
                         x1, y1, x2, y2, score, class_id = map(int, detection)
                         score = detection[4]
                         # print(id)
-                        if (class_id == 39):
+                        if (class_id != 39):
                             ggg = 1
                             bottle.append(detection)
                             E += 1
@@ -546,7 +548,7 @@ if __name__ == "__main__":
                 for i, detection in enumerate(bottle):
                     # print("1")
                     x1, y1, x2, y2, score, class_id = map(int, detection)
-                    if (class_id == 39):
+                    if (class_id != 39):
                         if i == E and E != 9999 and TTT <= 700:
                             cx1 = (x2 - x1) // 2 + x1
                             cy1 = (y2 - y1) // 2 + y1
@@ -660,12 +662,12 @@ if __name__ == "__main__":
                     cy = i
             _, _, d = get_real_xyz(depth2, cx, cy)
             x, y, z = d / 1000.0, 0.019, 0.06  # z 水平 y 上下 x 前後
-            for i in range(1000): move(0.2, 0)
+            for i in range(23000): move(0.2, 0)
             if x >= 0.25:
                 cntm = int((x - 0.25) * 1000 // 0.2)
                 for i in range(cntm): move(0.2, 0)
 
-            joint1, joint2, joint3, joint4 = 0.064,0.379,0.914,-1.147
+            joint1, joint2, joint3, joint4 = 0.064,0.379,0.914,-1.2
             set_joints(joint1, joint2, joint3, joint4, t)
             time.sleep(t)
             
@@ -680,12 +682,16 @@ if __name__ == "__main__":
             #move_to(0.20, -0.1, 0.1, 3.0)
             time.sleep(2)
             step = "givehim"
+            
             # break
-            break
+            #break
         if step == "givehim":
             
-            for i in range(1000): move(-0.2, 0)
+            for i in range(30000): move(-0.2, 0)
             turn(40)
+            joint1, joint2, joint3, joint4 = 0,0,0,0
+            set_joints(joint1, joint2, joint3, joint4, t)
+            time.sleep(t)
             step = "findg"
         if step == "findg":
             cx, cy = 0, 0
@@ -763,7 +769,7 @@ if __name__ == "__main__":
             say("Do you feel better now? If you need any help, please let me know. I will do my best to assist you.")
             #time.sleep(5)
             step = "person1"
-            break
+            #break
         if step == "person1":
             s = s.lower()
             print("s", s)
@@ -775,10 +781,10 @@ if __name__ == "__main__":
             if "thank" in s or "you" in s or "are" in s or "help" in s:
                 s = ""
                 say("It's my pleasure to assist you. If you need any further help, please don't hesitate to let me know.")
-                time.sleep(3)
+                #time.sleep(3)
             if ("better " in s or "now" in s and "concern" in s):
                 say("You're welcome. I'm always here to serve you. Please take care of yourself. If you need any more help or have any other concerns, please feel free to let me know.")
-                time.sleep(6)
+                #time.sleep(6)
                 s = ""
                 break
 
