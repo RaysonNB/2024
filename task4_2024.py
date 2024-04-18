@@ -354,6 +354,7 @@ if __name__ == "__main__":
     bottlecolor = ["pink", "black", "yellow"]
     saidd = 0
     get_b = 0
+    open_gripper(2)
     line_destory_cnt = 0
     while not rospy.is_shutdown():
         rospy.Rate(10).sleep()
@@ -518,7 +519,7 @@ if __name__ == "__main__":
                         if bottlecnt >= 3:
                             say("not enught bottle")
                             bottlecnt += 1
-                        continue
+                        #continue
                     for i, detection in enumerate(bb):
                         # print(detection)
                         x1, y1, x2, y2, score, class_id = map(int, detection)
@@ -568,7 +569,7 @@ if __name__ == "__main__":
                 if b1 == max(b1, b2, b3): mark = 0
                 if b2 == max(b1, b2, b3): mark = 1
                 if b3 == max(b1, b2, b3): mark = 2
-                if b1 >= 10 or b2 >= 10 or b3 >= 10:
+                if b1 >= 5 or b2 >= 5 or b3 >= 5:
                     step2 = "turn"
                     gg = bb
                     say("turn")
@@ -662,12 +663,12 @@ if __name__ == "__main__":
                     cy = i
             _, _, d = get_real_xyz(depth2, cx, cy)
             x, y, z = d / 1000.0, 0.019, 0.06  # z 水平 y 上下 x 前後
-            for i in range(23000): move(0.2, 0)
+            for i in range(39000): move(0.2, 0)
             if x >= 0.25:
                 cntm = int((x - 0.25) * 1000 // 0.2)
                 for i in range(cntm): move(0.2, 0)
 
-            joint1, joint2, joint3, joint4 = 0.064,0.379,0.914,-1.2
+            joint1, joint2, joint3, joint4 = 0.064,0.379,0.914,-1.3
             set_joints(joint1, joint2, joint3, joint4, t)
             time.sleep(t)
             
@@ -678,7 +679,7 @@ if __name__ == "__main__":
             time.sleep(2)
 
             saidd = "I got the " + bottlecolor[get_b] + "bottle"
-            say(saidd)
+            #say(saidd)
             #move_to(0.20, -0.1, 0.1, 3.0)
             time.sleep(2)
             step = "givehim"
@@ -686,12 +687,12 @@ if __name__ == "__main__":
             # break
             #break
         if step == "givehim":
-            
-            for i in range(30000): move(-0.2, 0)
-            turn(40)
-            joint1, joint2, joint3, joint4 = 0,0,0,0
+            joint1, joint2, joint3, joint4 = 0,-1.049,0.358,0.703
             set_joints(joint1, joint2, joint3, joint4, t)
             time.sleep(t)
+            for i in range(35000): move(-0.2, 0)
+            turn(30)
+            
             step = "findg"
         if step == "findg":
             cx, cy = 0, 0
@@ -753,13 +754,11 @@ if __name__ == "__main__":
         if step == "put":
             t = 3.0
             time.sleep(3.0)
-            joint1, joint2, joint3, joint4 = 0.000, 1.0, -0.5, -0.6
+            
+            joint1, joint2, joint3, joint4 = 0.064,0.379,0.914,-1.3
             set_joints(joint1, joint2, joint3, joint4, t)
             time.sleep(t)
             open_gripper(t)
-            time.sleep(2)
-            joint1, joint2, joint3, joint4 = 0.000, -1.0, 0.3, 0.70
-            set_joints(joint1, joint2, joint3, joint4, t)
 
             time.sleep(2.5)
             step = "talk"
@@ -782,7 +781,7 @@ if __name__ == "__main__":
                 s = ""
                 say("It's my pleasure to assist you. If you need any further help, please don't hesitate to let me know.")
                 #time.sleep(3)
-            if ("better " in s or "now" in s and "concern" in s):
+            if ("better " in s or "now" in s or "concern" in s):
                 say("You're welcome. I'm always here to serve you. Please take care of yourself. If you need any more help or have any other concerns, please feel free to let me know.")
                 #time.sleep(6)
                 s = ""
