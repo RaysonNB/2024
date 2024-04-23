@@ -21,6 +21,7 @@ from open_manipulator_msgs.srv import SetKinematicsPose, SetKinematicsPoseReques
 from mr_voice.msg import Voice
 from std_msgs.msg import String
 
+
 def say(g):
     tts = gTTS(g)
 
@@ -30,6 +31,7 @@ def say(g):
 
     # Play the speech
     playsound(speech_file)
+
 
 # gemini2
 def callback_image2(msg):
@@ -167,9 +169,13 @@ def test_point(xs, ys, d):
         xs1 = -1 * math.sqrt(ys ** 2 - ys1 ** 2)
         xs2 = math.sqrt(ys ** 2 - ys2 ** 2)
     return xs1, ys1, xs2, ys2
+
+
 def callback_voice(msg):
     global s
     s = msg.text
+
+
 def set_joints(joint1, joint2, joint3, joint4, t):
     service_name = "/goal_joint_space_path"
     rospy.wait_for_service(service_name)
@@ -193,14 +199,16 @@ def set_joints(joint1, joint2, joint3, joint4, t):
 def open_gripper(t):
     return set_gripper(0.01, t)
 
+
 def close_gripper(t):
     return set_gripper(-0.01, t)
+
 
 if __name__ == "__main__":
     rospy.init_node("demo")
     rospy.loginfo("dead")
 
-    frame2 = None 
+    frame2 = None
     rospy.Subscriber("/cam1/color/image_raw", Image, callback_image2)
 
     depth2 = None
@@ -211,7 +219,7 @@ if __name__ == "__main__":
     print("yolo")
     net_pose = HumanPoseEstimation(device_name="GPU")
     print("pose")
-    s=""
+    s = ""
     rospy.Subscriber("/voice/text", Voice, callback_voice)
     publisher_speaker = rospy.Publisher("/speaker/say", String, queue_size=10)
 
@@ -221,9 +229,9 @@ if __name__ == "__main__":
     rospy.Subscriber(topic_imu, Imu, callback_imu)
     rospy.wait_for_message(topic_imu, Imu)
 
-    #step = "get"  # remember
+    # step = "get"  # remember
     f_cnt = 0
-    #step2 = "dead"  # remember
+    # step2 = "dead"  # remember
     ax, ay, az, bx, by, bz = 0, 0, 0, 0, 0, 0
     b1, b2, b3, b4, b5 = 0, 0, 0, 0, 0
     pre_z, pre_x = 0, 0
@@ -240,7 +248,7 @@ if __name__ == "__main__":
     bottlecnt = 0
     line_destory_cnt = 0
     degree666 = 90
-    # turn(0)
+    step2 = 'none'
     getframeyyy = "help"
     times_cnt = 1  # times count
     # cv2.imshow("bottle", frame2)
@@ -253,13 +261,13 @@ if __name__ == "__main__":
     mode = 0
     ppp_cnt = 0
     get1 = 0
-    say_degree=0
+    say_degree = 0
     t = 3.0
     joint1, joint2, joint3, joint4 = 0.100, 0.268, 1.241, -1.5
     set_joints(joint1, joint2, joint3, joint4, t)
     time.sleep(t)
 
-    check_bootle_cnt=0
+    check_bootle_cnt = 0
     say("start the program")
     while not rospy.is_shutdown():
         rospy.Rate(50).sleep()
@@ -283,10 +291,10 @@ if __name__ == "__main__":
         outframe = frame2.copy()
         # az, bz = 0, 0
         if getframeyyy == "help":
-            print("s",s)
-            s=s.lower()
+            print("s", s)
+            s = s.lower()
             if "help" in s or "me" in s or "me" in s or "please" in s:
-                yn=0
+                yn = 0
                 detections = dnn_yolo.forward(outframe)[0]["det"]
                 for i, detection in enumerate(detections):
                     x1, y1, x2, y2, score, class_id = map(int, detection)
@@ -294,17 +302,18 @@ if __name__ == "__main__":
                     score = detection[4]
                     if class_id != 0: continue
                     if score < 0.4: continue
-                    _,_,dh = get_real_xyz(depth2,cx,cy)
+                    _, _, dh = get_real_xyz(depth2, cx, cy)
 
-                    if dh !=0 and dh<2500:
+                    if dh != 0 and dh < 2500:
                         cv2.rectangle(outframe, (x1, y1), (x2, y2), (0, 255, 0), 5)
-                        cv2.putText(outframe, "people", (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-                        yn=1
+                        cv2.putText(outframe, "people", (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255),
+                                    1)
+                        yn = 1
 
-                if (yn==1):
+                if (yn == 1):
                     say("Are u ok?")
                     say("Do u need any help?")
-                    getframeyyy="person"
+                    getframeyyy = "person"
                 else:
                     move(0, -0.3)
                     time.sleep(0.01)
@@ -356,6 +365,7 @@ if __name__ == "__main__":
                 roll1, pitch1, yaw1 = euler_from_quaternion(q)
                 mode = 1
             # break
+            al = []
             detections = dnn_yolo.forward(outframe)[0]["det"]
             for i, detection in enumerate(detections):
                 x1, y1, x2, y2, score, class_id = map(int, detection)
@@ -382,7 +392,7 @@ if __name__ == "__main__":
                 move(0, -0.3)
 
             else:
-                
+
                 mode += 1
                 if get1 == 0:
                     mode = 3
@@ -401,8 +411,8 @@ if __name__ == "__main__":
                 degree666 = (2 * np.pi - ((yaw2 + np.pi) - (yaw1 + np.pi))) * 180 / np.pi % 360
                 print("turn_degreeeeeeeeeeeee:  ", degree666)
                 if say_degree == 0:
-                    say("I turn"+str(int(degree666))+"degree")
-                    say_degree+=1
+                    say("I turn" + str(int(degree666)) + "degree")
+                    say_degree += 1
                 print("yaw1-yaw2", yaw1 - yaw2)
                 print("yaw1", yaw1)
                 print("yaw2", yaw2)
@@ -458,94 +468,95 @@ if __name__ == "__main__":
                                         (0, 0, 255), 2)
                             cv2.rectangle(outframe, (x1, y1), (x2, y2), (0, 0, 255), 5)
                             _, _, dddd1 = get_real_xyz(depth2, cx1, cy1)
-                            
+
                         else:
                             v = s_c[i]
                             cv2.putText(outframe, str(int(v)), (x1 + 5, y1 - 30), cv2.FONT_HERSHEY_SIMPLEX, 1,
                                         (0, 255, 0),
                                         2)
-            check_bootle_cnt+=1
-            print("check_bootle_cnt",check_bootle_cnt)
-            print("getframeyyy",getframeyyy)
-            if check_bootle_cnt >= 5 and len(bb)>=3:
-                getframeyyy = "turn"
-        if getframeyyy == "turn":
-            mark=0
-            print("turn_get")
-            if sb == 0:
-
-                if mark == 0: say("the left medicine")
-                if mark == 1: say("the middle medicine")
-                if mark == 2: say("the right medicine")
-                sb += 1
-
-            if len(bb) != 3: continue
-            print(bb)
-            h, w, c = outframe.shape
-            x1, y1, x2, y2, score, class_id = map(int, bb[0])
-            if framecnt == 0:
-                face_box = [x1, y1, x2, y2]
-                box_roi = outframe[face_box[1]:face_box[3] - 1, face_box[0]:face_box[2] - 1, :]
-                fh, fw = abs(x1 - x2), abs(y1 - y2)
-                box_roi = cv2.resize(box_roi, (fh * 10, fw * 10), interpolation=cv2.INTER_AREA)
-                cv2.imshow("bottle", box_roi)
-                get_b = mark
-                framecnt += 1
-            cx2 = (x2 - x1) // 2 + x1
-            cy2 = (y2 - y1) // 2 + y1
-            e = w // 2 - cx2
-            v = 0.0015 * e
-            if v > 0:
-                v = min(v, 0.2)
-            if v < 0:
-                v = max(v, -0.2)
-            move(0, v)
-            if abs(e) <= 5:
-                getframeyyy = "go"
-
-        if getframeyyy == "go":
-
-            cx, cy = w // 2, h // 2
-            for i in range(cy + 1, h):
-                if depth2[cy][cx] == 0 or 0 < depth2[i][cx] < depth2[cy][cx]:
-                    cy = i
-            _, _, d = get_real_xyz(depth2, cx, cy)
-            e = d - 400  # number is he last distance
-            if abs(e) <= 15:
-                getframeyyy = "turn_again"
-
-            v = 0.001 * e
-            if v > 0:
-                v = min(v, 0.2)
-            if v < 0:
-                v = max(v, -0.2)
-            move(v, 0)
-            print(d, v)
-            # cv2.imshow("turn", outframe)
-        if getframeyyy == "turn_again":
-            if len(bb) < 1: continue
-            min11 = 999999
-            ucx, ucy = 0, 0
-            for num in bb:
-                x1, y1, x2, y2, score, class_id = map(int, num)
+            check_bootle_cnt += 1
+            print("check_bootle_cnt", check_bootle_cnt)
+            print("getframeyyy", getframeyyy)
+            if check_bootle_cnt >= 30 and len(bb) >= 3:
+                step2 = "gettttt"
+            if step2 == "gettttt":
+                mark = 0
+                print("turn_get")
+                if sb == 0:
+    
+                    if mark == 0: say("the left medicine")
+                    if mark == 1: say("the middle medicine")
+                    if mark == 2: say("the right medicine")
+                    sb += 1
+    
+                if len(bb) != 3: continue
+                print(bb)
+                h, w, c = outframe.shape
+                x1, y1, x2, y2, score, class_id = map(int, bb[0])
+                if framecnt == 0:
+                    face_box = [x1, y1, x2, y2]
+                    box_roi = outframe[face_box[1]:face_box[3] - 1, face_box[0]:face_box[2] - 1, :]
+                    fh, fw = abs(x1 - x2), abs(y1 - y2)
+                    box_roi = cv2.resize(box_roi, (fh * 10, fw * 10), interpolation=cv2.INTER_AREA)
+                    cv2.imshow("bottle", box_roi)
+                    get_b = mark
+                    framecnt += 1
                 cx2 = (x2 - x1) // 2 + x1
                 cy2 = (y2 - y1) // 2 + y1
-                _, _, d = get_real_xyz(depth2, cx2, cy2)
-                if abs(w // 2 - cx2) < min11:
-                    min11 = abs(w // 2 - cx2)
-                    ucx = cx2
-
-            h, w, c = outframe.shape
-            e = w // 2 - ucx
-            v = 0.001 * e
-            if v > 0:
-                v = min(v, 0.2)
-            if v < 0:
-                v = max(v, -0.2)
-            move(0, v)
-            if abs(e) <= 3:
-                get_b = mark
-                getframeyyy = "none"
+                e = w // 2 - cx2
+                v = 0.0015 * e
+                if v > 0:
+                    v = min(v, 0.2)
+                if v < 0:
+                    v = max(v, -0.2)
+                move(0, v)
+                if abs(e) <= 5:
+                    step2 = "go"
+    
+            if step2 == "go":
+    
+                cx, cy = w // 2, h // 2
+                for i in range(cy + 1, h):
+                    if depth2[cy][cx] == 0 or 0 < depth2[i][cx] < depth2[cy][cx]:
+                        cy = i
+                _, _, d = get_real_xyz(depth2, cx, cy)
+                e = d - 400  # number is he last distance
+                if abs(e) <= 15:
+                    step2 = "turn_again"
+    
+                v = 0.001 * e
+                if v > 0:
+                    v = min(v, 0.2)
+                if v < 0:
+                    v = max(v, -0.2)
+                move(v, 0)
+                print(d, v)
+                # cv2.imshow("turn", outframe)
+            if step2 == "turn_again":
+                if len(bb) < 1: continue
+                min11 = 999999
+                ucx, ucy = 0, 0
+                for num in bb:
+                    x1, y1, x2, y2, score, class_id = map(int, num)
+                    cx2 = (x2 - x1) // 2 + x1
+                    cy2 = (y2 - y1) // 2 + y1
+                    _, _, d = get_real_xyz(depth2, cx2, cy2)
+                    if abs(w // 2 - cx2) < min11:
+                        min11 = abs(w // 2 - cx2)
+                        ucx = cx2
+    
+                h, w, c = outframe.shape
+                e = w // 2 - ucx
+                v = 0.001 * e
+                if v > 0:
+                    v = min(v, 0.2)
+                if v < 0:
+                    v = max(v, -0.2)
+                move(0, v)
+                if abs(e) <= 3:
+                    get_b = mark
+                    getframeyyy = "grap"
+                    step2="none"
 
         if getframeyyy == "grap":
             t = 3.0
@@ -587,7 +598,7 @@ if __name__ == "__main__":
             time.sleep(t)
             for i in range(35000): move(-0.2, 0)
             for i in range(160):
-                move(0,-0.2)
+                move(0, -0.2)
                 time.sleep(0.1)
 
             getframeyyy = "findg"
@@ -608,7 +619,7 @@ if __name__ == "__main__":
                 cx = (x2 - x1) // 2 + x1
                 cy = (y2 - y1) // 2 + y1
                 _, _, hg = get_real_xyz(depth2, cx, cy)
-                if score > 0.5 and class_id == 0 and hg <= 2500 and hg!=0:
+                if score > 0.5 and class_id == 0 and hg <= 2500 and hg != 0:
                     getframeyyy = "turn"
                     # dnn_yolo.draw_bounding_box(detection, frame)
                     cv2.rectangle(frameg, (x1, y1), (x2, y2), (255, 0, 0), 2)
