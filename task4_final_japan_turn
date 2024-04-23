@@ -348,13 +348,13 @@ if __name__ == "__main__":
                 # time.sleep(2)
                 print("before position", ax, ay, az, bx, by, bz)
                 pose_cnt_cnt += 1
-                getframeyyy = "hard_code"
+                getframeyyy = "_code"
                 # turn(degree666)
                 say("I see your hand")
                 move(0.0, 0.0)
                 print("before position", ax, ay, az, bx, by, bz)
 
-        if getframeyyy == "hard_code":
+        if getframeyyy == "_code":
             if mode == 0 and mode != 1:
                 q = [
                     _imu.orientation.x,
