@@ -341,21 +341,21 @@ if __name__ == "__main__":
             poses = net_pose.forward(outframe)
             if len(poses) > 0:
                 YN = -1
-                a_num, b_num = 5,12
+                a_num, b_num = 9,7
                 for issack in range(len(poses)):
                     yu=0
-                    if poses[issack][5][2] > 0 and poses[issack][12][2] > 0:
+                    if poses[issack][9][2] > 0 and poses[issack][7][2] > 0:
                         YN = 0
                         
-                        a_num, b_num = 5,12
+                        a_num, b_num = 9,7
                         A = list(map(int, poses[issack][a_num][:2]))
                         if (640 >= A[0] >= 0 and 320 >= A[1] >= 0):
-                            ax, ay, az = get_real_xyz(up_depth, A[0], A[1],2)
+                            ax, ay, az = get_real_xyz(depth2, A[0], A[1])
                             if az<=1800 and az!=0:
                                 yu += 1
                         B = list(map(int, poses[issack][b_num][:2]))
                         if (640 >= B[0] >= 0 and 320 >= B[1] >= 0):
-                            bx, by, bz = get_real_xyz(up_depth, B[0], B[1],2)
+                            bx, by, bz = get_real_xyz(depth2, B[0], B[1])
                             if bz<=1800 and bz!=0:
                                 yu += 1
                     if yu>=2:
@@ -622,7 +622,7 @@ if __name__ == "__main__":
             set_joints(joint1, joint2, joint3, joint4, t)
             time.sleep(t)
             for i in range(35000): move(-0.2, 0)
-            for i in range(160):
+            for i in range(180):
                 move(0, -0.2)
                 time.sleep(0.1)
 
@@ -633,59 +633,57 @@ if __name__ == "__main__":
             max_ = -1
             frameg = outframe.copy()
             last_distance = 999999
-            detections = dnn_yolo.forward(frameg)[0]["det"]
             yn = "no"
             h, w = outframe.shape[:2]
             print("give")
-            for i, detection in enumerate(detections):
-                # print(detection)
-                x1, y1, x2, y2, score, class_id = map(int, detection)
-                score = detection[4]
-                # print(x1, y1, x2, y2, score, class_id)
-                cx = (x2 - x1) // 2 + x1
-                cy = (y2 - y1) // 2 + y1
-                _, _, hg = get_real_xyz(depth2, cx, cy)
-                cv2.rectangle(frameg, (x1, y1), (x2, y2), (255, 255, 0), 2)
-                if score > 0.4 and class_id == 0 and hg <= 2500 and hg != 0:
-                    #getframeyyy = "turn"
-                    # dnn_yolo.draw_bounding_box(detection, frame)
-                    cv2.rectangle(frameg, (x1, y1), (x2, y2), (255, 0, 0), 2)
-                    cv2.circle(frameg, (cx, cy), 5, (0, 0, 255), -1)
-                    cv2.putText(frameg, "person", (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-                    hh = x2 - x1
-                    ll = y2 - y1
-                    if hg < last_distance and hg < 1000:
-                        yn = "yes"
-                        max_ = ll * hh
-                        rcx, rcy = cx, cy
-                        last_distance = hg
+            A=[]
+            poses = net_pose.forward(outframe)
+            if len(poses) > 0:
+                YN = -1
+                a_num=5
+                for issack in range(len(poses)):
+                    yu=0
+                    if poses[issack][7][2]>0:
+                        YN = 0
+                        
+                        a_num=7
+                        A = list(map(int, poses[issack][a_num][:2]))
+                        if (640 >= A[0] >= 0 and 320 >= A[1] >= 0):
+                            ax, ay, az = get_real_xyz(depth2, A[0], A[1])
+                            if az<=3000 and az!=0:
+                                yu += 1
+                                break
+            print(A)
+            if len(A)!=0 and yu>=1:
+                rcx,rcy=A[0],A[1]
+            print("position_r",rcx,rcy)
+            
+            if rcx == 0: 
+                move(0,-0.2)
+                #continue
+            else:
+                _, _, d = get_real_xyz(depth2, rcx, rcy)
+                if d <= 700 and d != 0:
+                    say("here you are")
+                    getframeyyy = "put"
+                print("people: depth: ", d)
+                cur_x = calc_linear_x(d, 700)
+                cur_z = calc_angular_z(rcx, 320)
 
-            if rcx == 0: continue
-            _, _, d = get_real_xyz(depth2, rcx, rcy)
-            if d <= 350 and d >= 0:
-                say("here you are")
-                getframeyyy = "put"
-            print("people: depth: ", d)
-            cur_x = calc_linear_x(d, 300)
-            cur_z = calc_angular_z(cx, 320)
+                dx = cur_x - pre_x
+                if dx > 0: dx = min(dx, 0.015)
+                if dx < 0: dx = max(dx, -0.015)
 
-            dx = cur_x - pre_x
-            if dx > 0: dx = min(dx, 0.03)
-            if dx < 0: dx = max(dx, -0.03)
+                dz = cur_z - pre_z
+                if dz < 0: dz = min(dz, 0.2)
+                if dz > 0: dz = max(dz, -0.2)
 
-            dz = cur_z - pre_z
-            if dz > 0: dz = min(dz, 0.2)
-            if dz < 0: dz = max(dz, -0.2)
-
-            cur_x = pre_x + dx
-            cur_z = pre_z + dz
-
-            if yn == "no":
-                cur_x, cur_z = 0, 0.2
-
-            pre_x = cur_x
-            pre_z = cur_z
-            move(cur_x, cur_z)
+                cur_x = pre_x + dx
+                cur_z = pre_z + dz
+                
+                pre_x = cur_x
+                pre_z = cur_z
+                move(cur_x, cur_z)
         if getframeyyy == "put":
             t = 3.0
             time.sleep(3.0)
