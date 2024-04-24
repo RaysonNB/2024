@@ -284,6 +284,9 @@ if __name__ == "__main__":
     time.sleep(t)
 
     check_bootle_cnt = 0
+    
+    
+    give_mode=0
     say("start the program")
     while not rospy.is_shutdown():
         rospy.Rate(50).sleep()
@@ -658,10 +661,11 @@ if __name__ == "__main__":
                 rcx,rcy=A[0],A[1]
             print("position_r",rcx,rcy)
             
-            if rcx == 0: 
+            if rcx == 0 and give_mode ==0: 
                 move(0,-0.2)
                 #continue
             else:
+                give_mode=1
                 _, _, d = get_real_xyz(depth2, rcx, rcy)
                 if d <= 700 and d != 0:
                     say("here you are")
