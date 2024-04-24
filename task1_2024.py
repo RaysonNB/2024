@@ -703,26 +703,28 @@ if __name__ == "__main__":
             if len(poses) > 0:
                 YN = -1
                 a_num, b_num = 5,12
-                if poses[0][5][2] > 0 and poses[0][12][2] > 0:
-                    YN = 0
-                    a_num, b_num = 5,12
-                    A = list(map(int, poses[0][a_num][:2]))
-                    if (640 >= A[0] >= 0 and 320 >= A[1] >= 0):
-                        ax, ay, az = get_real_xyz(up_depth, A[0], A[1],2)
-                        if az<=2000 and az!=0:
-                            yu += 1
-                    B = list(map(int, poses[0][b_num][:2]))
-                    if (640 >= B[0] >= 0 and 320 >= B[1] >= 0):
-                        bx, by, bz = get_real_xyz(up_depth, B[0], B[1],2)
-                        if bz<=2000 and bz!=0:
-                            yu += 1
+                for issack in range(len(poses)):
+                    yu=0
+                    if poses[issack][5][2] > 0 and poses[issack][12][2] > 0:
+                        YN = 0
+                        
+                        a_num, b_num = 5,12
+                        A = list(map(int, poses[issack][a_num][:2]))
+                        if (640 >= A[0] >= 0 and 320 >= A[1] >= 0):
+                            ax, ay, az = get_real_xyz(up_depth, A[0], A[1],2)
+                            if az<=1800 and az!=0:
+                                yu += 1
+                        B = list(map(int, poses[issack][b_num][:2]))
+                        if (640 >= B[0] >= 0 and 320 >= B[1] >= 0):
+                            bx, by, bz = get_real_xyz(up_depth, B[0], B[1],2)
+                            if bz<=1800 and bz!=0:
+                                yu += 1
+                    if yu>=2:
+                        break
             print(A, B)
-            
-            if len(A) != 0 and yu >= 2:
-                cv2.circle(up_image, (A[0], A[1]), 3, (0, 255, 0), -1)
-            if len(B) != 0 and yu >= 2:
-                cv2.circle(up_image, (B[0], B[1]), 3, (0, 255, 0), -1)
             if len(A)!=0 and len(B)!=0:
+                cv2.circle(up_image, (A[0], A[1]), 3, (0, 255, 0), -1)
+                cv2.circle(up_image, (B[0], B[1]), 3, (0, 255, 0), -1)
                 cx = (B[0] - A[0]) // 2 + A[0]
                 cy = (B[1] - A[1]) // 2 + A[1]
                 cv2.rectangle(up_image, (A[0], A[1]), (B[0], B[1]), (0, 0, 255), 2)
