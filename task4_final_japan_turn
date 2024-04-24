@@ -194,7 +194,23 @@ def set_joints(joint1, joint2, joint3, joint4, t):
     except Exception as e:
         rospy.loginfo("%s" % e)
         return False
+def set_gripper(angle, t):
+    service_name = "/goal_tool_control"
+    rospy.wait_for_service(service_name)
 
+    try:
+        service = rospy.ServiceProxy(service_name, SetJointPosition)
+
+        request = SetJointPositionRequest()
+        request.joint_position.joint_name = ["gripper"]
+        request.joint_position.position = [angle]
+        request.path_time = t
+
+        response = service(request)
+        return response
+    except Exception as e:
+        rospy.loginfo("%s" % e)
+        return False
 
 def open_gripper(t):
     return set_gripper(0.01, t)
@@ -249,7 +265,7 @@ if __name__ == "__main__":
     line_destory_cnt = 0
     degree666 = 90
     step2 = 'none'
-    getframeyyy = "help"
+    getframeyyy = "findg"
     times_cnt = 1  # times count
     # cv2.imshow("bottle", frame2)
     pose_cnt_cnt = 0
@@ -372,7 +388,7 @@ if __name__ == "__main__":
                 cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
                 score = detection[4]
                 if class_id != 39: continue
-                if score < 0.4: continue
+                if score < 0.35: continue
                 if cy >= 480: continue
                 print(cx, cy, "position bottle")
                 cx = min(cx, 640)
@@ -477,7 +493,7 @@ if __name__ == "__main__":
             check_bootle_cnt += 1
             print("check_bootle_cnt", check_bootle_cnt)
             print("getframeyyy", getframeyyy)
-            if check_bootle_cnt >= 30 and len(bb) >= 3:
+            if check_bootle_cnt >= 30 and len(bb) >= 3 and step2=="none":
                 step2 = "gettttt"
             if step2 == "gettttt":
                 mark = 0
@@ -520,10 +536,11 @@ if __name__ == "__main__":
                     if depth2[cy][cx] == 0 or 0 < depth2[i][cx] < depth2[cy][cx]:
                         cy = i
                 _, _, d = get_real_xyz(depth2, cx, cy)
-                e = d - 400  # number is he last distance
+                e = d - 500  # number is he last distance
                 if abs(e) <= 15:
                     step2 = "turn_again"
-    
+                    say("turn again")
+                print("goo")
                 v = 0.001 * e
                 if v > 0:
                     v = min(v, 0.2)
@@ -533,7 +550,9 @@ if __name__ == "__main__":
                 print(d, v)
                 # cv2.imshow("turn", outframe)
             if step2 == "turn_again":
+                print("mode eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeturn again")
                 if len(bb) < 1: continue
+                print("turnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn")
                 min11 = 999999
                 ucx, ucy = 0, 0
                 for num in bb:
@@ -611,6 +630,7 @@ if __name__ == "__main__":
             detections = dnn_yolo.forward(frameg)[0]["det"]
             yn = "no"
             h, w = outframe.shape[:2]
+            print("give")
             for i, detection in enumerate(detections):
                 # print(detection)
                 x1, y1, x2, y2, score, class_id = map(int, detection)
@@ -619,8 +639,9 @@ if __name__ == "__main__":
                 cx = (x2 - x1) // 2 + x1
                 cy = (y2 - y1) // 2 + y1
                 _, _, hg = get_real_xyz(depth2, cx, cy)
-                if score > 0.5 and class_id == 0 and hg <= 2500 and hg != 0:
-                    getframeyyy = "turn"
+                cv2.rectangle(frameg, (x1, y1), (x2, y2), (255, 255, 0), 2)
+                if score > 0.4 and class_id == 0 and hg <= 2500 and hg != 0:
+                    #getframeyyy = "turn"
                     # dnn_yolo.draw_bounding_box(detection, frame)
                     cv2.rectangle(frameg, (x1, y1), (x2, y2), (255, 0, 0), 2)
                     cv2.circle(frameg, (cx, cy), 5, (0, 0, 255), -1)
