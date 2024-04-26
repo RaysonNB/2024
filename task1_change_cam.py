@@ -391,23 +391,23 @@ if __name__ == "__main__":
     print("astra depth")
     _depth1 = None
     _topic_depth1 = "/cam2/depth/image_raw"
-    _sub_up_cam_depth = rospy.Subscriber(_topic_image1, Image, callback_image1)
+    _sub_up_cam_depth = rospy.Subscriber(_topic_depth1, Image, callback_depth1)
     # _sub_up_cam_image.unregister()
 
     #
     print("gemini2 rgb")
     _frame2 = None
-    _sub_down_cam_image = rospy.Subscriber("/cam1/color/image_raw", Image, callback_image2)
+    #_sub_down_cam_image = rospy.Subscriber("/cam1/color/image_raw", Image, callback_image2)
 
 
     print("gemini2 depth")
     _depth2 = None
-    _sub_down_cam_depth = rospy.Subscriber("/cam1/depth/image_raw", Image, callback_depth2)
+    #_sub_down_cam_depth = rospy.Subscriber("/cam1/depth/image_raw", Image, callback_depth2)
 
     time.sleep(5)
 
-    _sub_down_cam_image.unregister()
-    _sub_down_cam_depth.unregister()
+    #_sub_down_cam_image.unregister()
+    #_sub_down_cam_depth.unregister()
     time.sleep(2)
     print("open up close down")
     s = ""
@@ -445,10 +445,11 @@ if __name__ == "__main__":
     _fw = FollowMe()
 
     print("finish loading, start")
+    '''
     h, w, c = _image1.shape
     img = np.zeros((h, w * 2, c), dtype=np.uint8)
     img[:h, :w, :c] = _image1
-    img[:h, w:, :c] = _frame2
+    img[:h, w:, :c] = _frame2'''
     slocnt = 0
     # u_var
     d, one, mask, key, is_turning = 1, 0, 0, 0, False
@@ -458,11 +459,11 @@ if __name__ == "__main__":
     pre_s = ""
     # main var
     t, ee, s = 3.0, "", ""
-    step = "get_bag"
+    step = "follow"
 
     clear_costmaps = rospy.ServiceProxy("/move_base/clear_costmaps", Empty)
 
-    action = "none"
+    action = "follow"
     move_turn = "none"
     # wait for prepare
     print("start")
@@ -501,19 +502,19 @@ if __name__ == "__main__":
             pre_s = s
 
         rospy.Rate(10).sleep()
-        if _frame2 is None: print("down rgb none")
-        if _depth2 is None: print("down depth none")
+        #if _frame2 is None: print("down rgb none")
+        #if _depth2 is None: print("down depth none")
         if _depth1 is None: print("up depth none")
         if _image1 is None: print("up rgb none")
 
-        if _depth1 is None or _image1 is None or _depth2 is None or _frame2 is None: continue
+        #if _depth1 is None or _image1 is None or _depth2 is None or _frame2 is None: continue
 
         # var needs in while
         cx1, cx2, cy1, cy2 = 0, 0, 0, 0
         detection_list = []
-
-        down_image = _frame2.copy()
-        down_depth = _depth2.copy()
+        if sub_hand_cnt >=1:
+            down_image = _frame2.copy()
+            down_depth = _depth2.copy()
         up_image = _image1.copy()
         up_depth = _depth1.copy()
 
@@ -568,6 +569,9 @@ if __name__ == "__main__":
                     sub_hand_cnt += 1
 
         # if step=="none": continue
+        if sub_hand_cnt >=1:
+            down_image = _frame2.copy()
+            down_depth = _depth2.copy()
         if step == "get_bag" and sub_hand_cnt>=1:
             detections = dnn_yolo1.forward(down_image)[0]["det"]
             for i, detection in enumerate(detections):
@@ -638,6 +642,7 @@ if __name__ == "__main__":
 
         if step == "check_voice":
             s = s.lower()
+            print("speak", s)
             if "thank" in s or "you" in s:
                 action = "none"
                 say("I will go back now, bye bye")
@@ -709,14 +714,14 @@ if __name__ == "__main__":
             time.sleep(3)
             say("I will follow you now")
             for i in range(50000): move(-0.2, 0)
-
+            
             action = "follow"
 
         if action == "follow":
             print('follow')
             if sub_follow_cnt == 0:
-                _sub_down_cam_image.unregister()
-                _sub_down_cam_depth.unregister()
+                #_sub_down_cam_image.unregister()
+                #_sub_down_cam_depth.unregister()
                 #_sub_up_cam_image.unregister()
                 #_sub_up_cam_depth.unregister()
 
@@ -725,7 +730,8 @@ if __name__ == "__main__":
                 #_sub_down_cam_depth = rospy.Subscriber("/cam1/depth/image_raw", Image, callback_depth2)
                 #_sub_down_cam_image = rospy.Subscriber("/cam1/color/image_raw", Image, callback_image2)
                 _sub_up_cam_image = rospy.Subscriber("/cam2/color/image_raw", Image, callback_image1)
-                _sub_up_cam_depth = rospy.Subscriber("/cam2/depth/image_raw", Image, callback_image1)
+                _topic_depth1 = "/cam2/depth/image_raw"
+                _sub_up_cam_depth = rospy.Subscriber(_topic_depth1, Image, callback_depth1)
 
                 time.sleep(2)
                 sub_follow_cnt += 1
@@ -751,43 +757,43 @@ if __name__ == "__main__":
                     print("bag score:", score)
                     nx=d
                     cx_n, cy_n = cx,cy'''
-
             poses = net_pose.forward(up_image)
             min_d = 9999
-            t_idx = -1
+            t_idx=-1
             for i, pose in enumerate(poses):
                 if pose[5][2] == 0 or pose[6][2] == 0:
                     continue
                 p5 = list(map(int, pose[5][:2]))
                 p6 = list(map(int, pose[6][:2]))
-                if d >= 1800 or d == 0: continue
+                
                 cx = (p5[0] + p6[0]) // 2
                 cy = (p5[1] + p6[1]) // 2
                 cv2.circle(up_image, p5, 5, (0, 0, 255), -1)
                 cv2.circle(up_image, p6, 5, (0, 0, 255), -1)
                 cv2.circle(up_image, (cx, cy), 5, (0, 255, 0), -1)
                 _, _, d = get_real_xyz(up_depth, cx, cy, 2)
-
-                if (d != 0 and d < min_d) and d <= 1800:
+                if d>=1800 or d == 0: continue
+                if (d != 0 and d < min_d):
                     t_idx = i
                     min_d = d
-
+            
             x, z = 0, 0
-            if min_d != 9999:
+            if t_idx!=-1:
                 p5 = list(map(int, poses[t_idx][5][:2]))
                 p6 = list(map(int, poses[t_idx][6][:2]))
                 cx = (p5[0] + p6[0]) // 2
                 cy = (p5[1] + p6[1]) // 2
                 _, _, d = get_real_xyz(up_depth, cx, cy, 2)
                 cv2.circle(up_image, (cx, cy), 5, (0, 255, 255), -1)
-
-                print("people_d", d)
-                if d >= 1800 or d == 0: continue
-
+                
+                print("people_d",d)
+                if d>=1800 or d == 0: continue
+                
+                
                 x, z, up_image, yn = _fw.calc_cmd_vel(up_image, up_depth, cx, cy)
                 print("turn_x_z:", x, z)
             move(x, z)
-
+            step = "check_voice"
             '''
             A = []
             B = []
@@ -879,10 +885,13 @@ if __name__ == "__main__":
                     break
             time.sleep(1)
             break
-
+        
         h, w, c = up_image.shape
         upout = cv2.line(up_image, (320, 0), (320, 500), (0, 255, 0), 5)
-        downout = cv2.line(down_image, (320, 0), (320, 500), (0, 255, 0), 5)
+        if sub_hand_cnt>=1:
+            downout = cv2.line(down_image, (320, 0), (320, 500), (0, 255, 0), 5)
+        else:
+            downout = up_image.copy()
         img = np.zeros((h, w * 2, c), dtype=np.uint8)
         img[:h, :w, :c] = upout
         img[:h, w:, :c] = downout
