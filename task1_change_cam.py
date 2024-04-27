@@ -21,7 +21,6 @@ from RobotChassis import RobotChassis
 import datetime
 from std_srvs.srv import Empty
 
-
 class FollowMe(object):
     def __init__(self) -> None:
         self.pre_x, self.pre_z = 0.0, 0.0
@@ -340,11 +339,8 @@ def move_to(x, y, z, t):
         rospy.loginfo("%s" % e)
         return False
 
-
-def say(a):
-    global publisher_speaker
-    publisher_speaker.publish(a)
-
+def say(g):
+    print(g)
 
 # callback
 def callback_imu(msg):
@@ -425,7 +421,7 @@ if __name__ == "__main__":
     # change model
     print("yolov8")
     Kinda = np.loadtxt(RosPack().get_path("mr_dnn") + "/Kinda.csv")
-    dnn_yolo1 = Yolov8("bag_japan", device_name="GPU")
+    dnn_yolo1 = Yolov8("bag_100", device_name="GPU")
     dnn_yolo1.classes = ['obj']
 
     # two yolo
@@ -459,11 +455,11 @@ if __name__ == "__main__":
     pre_s = ""
     # main var
     t, ee, s = 3.0, "", ""
-    step = "follow"
+    step = "get_bag"
 
     clear_costmaps = rospy.ServiceProxy("/move_base/clear_costmaps", Empty)
 
-    action = "follow"
+    action = "none"
     move_turn = "none"
     # wait for prepare
     print("start")
@@ -720,8 +716,8 @@ if __name__ == "__main__":
         if action == "follow":
             print('follow')
             if sub_follow_cnt == 0:
-                #_sub_down_cam_image.unregister()
-                #_sub_down_cam_depth.unregister()
+                _sub_down_cam_image.unregister()
+                _sub_down_cam_depth.unregister()
                 #_sub_up_cam_image.unregister()
                 #_sub_up_cam_depth.unregister()
 
@@ -850,10 +846,10 @@ if __name__ == "__main__":
             '''
 
         if action == "back3":
-            break
+            #break
             clear_costmaps
             # chassis.move_to(-0.703,-4.65,0)
-            chassis.move_to(5.51, 6.74, 0)
+            chassis.move_to(1.34,4.52, 0)
             # checking
             while not rospy.is_shutdown():
                 # 4. Get the chassis status.
@@ -864,7 +860,7 @@ if __name__ == "__main__":
             time.sleep(1)
             clear_costmaps
             # chassis.move_to(-2.36,3.43,0)
-            chassis.move_to(9.21, 5.51, 0)
+            chassis.move_to(-2.41,2.92, 0)
             # checking
             while not rospy.is_shutdown():
                 # 4. Get the chassis status.
@@ -875,7 +871,7 @@ if __name__ == "__main__":
             time.sleep(1)
             clear_costmaps
             # chassis.move_to(-0.531,-2.99,0.201)
-            chassis.move_to(7.95, 8.08, 0)
+            chassis.move_to(-1.38,-0.472,0)
             # checking
             while not rospy.is_shutdown():
                 # 4. Get the chassis status.
@@ -884,6 +880,19 @@ if __name__ == "__main__":
                 if code == 3:
                     break
             time.sleep(1)
+            #break
+            clear_costmaps
+            # chassis.move_to(-0.531,-2.99,0.201)
+            chassis.move_to(0.968,0.342, 0)
+            # checking
+            while not rospy.is_shutdown():
+                # 4. Get the chassis status.
+                code = chassis.status_code
+                text = chassis.status_text
+                if code == 3:
+                    break
+            time.sleep(1)
+            say("finish, thank you")
             break
         
         h, w, c = up_image.shape
