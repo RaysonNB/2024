@@ -714,7 +714,7 @@ if __name__ == "__main__":
                 v = max(v, -0.2)
             move(0, v)
             if abs(e) <= 5:
-                for i in range(10000): move(0.2, 0)
+                for i in range(14000): move(0.2, 0)
     
                 say("I get it")
                 time.sleep(t)
