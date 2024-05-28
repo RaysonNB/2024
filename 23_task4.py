@@ -314,7 +314,7 @@ if __name__ == "__main__":
                 cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
                 score = detection[4]
                 if class_id != 39: continue
-                if score < 0.4: continue
+                if score < 0.45: continue
                 if cy >= 480: continue
                 print(cx, cy, "position bottle")
                 cx = min(cx, 640)
@@ -328,9 +328,11 @@ if __name__ == "__main__":
                 cv2.rectangle(outframe, (x1, y1), (x2, y2), (0, 255, 0), 5)
                 cv2.putText(outframe, str(hhh), (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
             bb = sorted(al, key=(lambda x: x[0]))
-            if (len(bb) <=2) and mode == 1:
-                move(0, -0.3)
+            print("mode",mode,"len(bb",len(bb))
+            if len(bb)!=2 and mode==1:
+                move(0, 0.3)
             else:
+                move(0, 0)
                 mode += 1
                 if get1 == 0:
                     mode = 3
@@ -345,9 +347,10 @@ if __name__ == "__main__":
                     get1 += 1
 
                 yaw2 = yawb
-                move(0, 0)
+                
                 degree666 = (2 * np.pi - ((yaw2 + np.pi) - (yaw1 + np.pi))) * 180 / np.pi % 360
-                print("turn_degreeeeeeeeeeeee:  ", degree666)
+                degree666=360-degree666
+                print("need---turn_degreeeeeeeeeeeee:  ", degree666)
                 if say_degree == 0:
                     say("I turn" + str(int(degree666)) + "degree")
                     say_degree += 1
@@ -358,10 +361,11 @@ if __name__ == "__main__":
                 print("roll2", roll2)
                 print("pitch1", pitch1)
                 print("pitch2", pitch2)
+                degree666=degree666*np.pi/180
                 axs2, azs2 = test_point(ax, az, degree666)
                 bxs2, bzs2 = test_point(bx, bz, degree666)
-                print("before position", ax, ay, az, bx, by, bz)
-                print("cal hand position", axs2, ay, azs2, bxs2, by, bzs2)
+                print("need---before position", ax, ay, az, bx, by, bz)
+                print("need---cal hand position", axs2, ay, azs2, bxs2, by, bzs2)
                 ggg=0
                 for i, detection in enumerate(bb):
                     # print(detection)
@@ -373,6 +377,8 @@ if __name__ == "__main__":
                     cx1 = (x2 - x1) // 2 + x1
                     cy1 = (y2 - y1) // 2 + y1
                     px, py, pz = get_real_xyz(depth2, cx1, cy1)
+                    print("need---bottle",i,px,py,pz)
+                    
                     dis_list.append(pz)
                     cnt = int(get_distance(px, py, pz, axs2, ay, azs2, bxs2, by, bzs2))
                     s_c.append(cnt)
@@ -382,9 +388,9 @@ if __name__ == "__main__":
                 E = s_c.index(TTT)
                 for i, detection in enumerate(bottle):
                     x1, y1, x2, y2, score, _ = map(int, detection)
-                    if(s_c[i] == -1)
+                    if(s_c[i] == -1):
                         num="error"
-                    else
+                    else:
                         num=str(int(s_c[i]))
                     cx1 = (x2 - x1) // 2 + x1
                     cy1 = (y2 - y1) // 2 + y1
@@ -392,11 +398,12 @@ if __name__ == "__main__":
                         color=(0, 0, 255)
                     else:
                         color=(0, 255, 0)
-                    cv2.putText(outframe, num, (x1 + 5, y1 - 40), cv2.FONT_HERSHEY_SIMPLEX,1.15,(0, 0, 255), 2)
+                    cv2.putText(outframe, num, (x1 + 5, y1 - 40), cv2.FONT_HERSHEY_SIMPLEX,1.15,color, 2)
                     cv2.rectangle(outframe, (x1, y1), (x2, y2), (0, 255, 0), 5)
             check_bootle_cnt += 1
             print("check_bootle_cnt", check_bootle_cnt)
             print("getframeyyy", getframeyyy)
+            #if(check_bootle_cnt>0) move(0,0)
             if check_bootle_cnt >= 3000 and len(bb) >= 3 and step2=="none":
                 step2 = "gettttt"
         E = outframe.copy()
