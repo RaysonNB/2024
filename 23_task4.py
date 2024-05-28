@@ -152,16 +152,15 @@ def calc_angular_z(cx, tx):
 
 
 def test_point(xs, ys, d):
-    x=xs
-    y=ys
-    degree=d
-    a=math.sqrt(x**2+y**2)
-    if(y*math.sin(degree))<0:
-        n1=-(y*math.sin(degree))+x*math.cos(degree)
+    sty=ys
+    stx=xs
+    if sty * math.sin(d) < 0:
+        n1x = -abs(sty * math.sin(d)) + stx * math.cos(d)
     else:
-        n1=(y*math.sin(degree))+x*math.cos(degree)
-    n2=(a**2*math.cos(degree)-x*n1)/y
-    return n1,n2,n1,n2
+        n1x = abs(sty * math.sin(d)) + stx * math.cos(d)
+    
+    n1y = ((stx ** 2 + sty ** 2) * math.cos(d) - stx * n1x) / sty
+    return n1x,n1y
 
 
 def callback_voice(msg):
@@ -262,13 +261,13 @@ if __name__ == "__main__":
             poses = net_pose.forward(outframe)
             if len(poses) > 0:
                 YN = -1
-                a_num, b_num = 9,7
+                a_num, b_num = 8,10
                 for issack in range(len(poses)):
                     yu=0
-                    if poses[issack][9][2] > 0 and poses[issack][7][2] > 0:
+                    if poses[issack][a_num][2] > 0 and poses[issack][b_num][2] > 0:
                         YN = 0
                         
-                        a_num, b_num = 9,7
+                        a_num, b_num = 8,10
                         A = list(map(int, poses[issack][a_num][:2]))
                         if (640 >= A[0] >= 0 and 320 >= A[1] >= 0):
                             ax, ay, az = get_real_xyz(depth2, A[0], A[1])
@@ -315,27 +314,23 @@ if __name__ == "__main__":
                 cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
                 score = detection[4]
                 if class_id != 39: continue
-                if score < 0.3: continue
+                if score < 0.4: continue
                 if cy >= 480: continue
                 print(cx, cy, "position bottle")
                 cx = min(cx, 640)
-                cy = min(cy, 480 - 1)
-                if (640 < cx or cx < 0 and 320 < cy or cy < 0): continue
-
+                cy = min(cy, 480)
+                if (640 < cx or cx < 0 and 320 < cy or cy < 0) or(cx==640) or (cy==320): continue
+                
                 k2, kk1, kkkz = get_real_xyz(depth2, cx, cy)
                 if kkkz > 2500 or abs(kkkz) <= 0: continue
                 al.append([x1, y1, x2, y2, score, class_id])
-                # print(float(score), class_id)
                 hhh = str(class_id) + " " + str(k2) + " " + str(kk1) + " " + str(kkkz)
                 cv2.rectangle(outframe, (x1, y1), (x2, y2), (0, 255, 0), 5)
                 cv2.putText(outframe, str(hhh), (x1 + 5, y1 + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
             bb = sorted(al, key=(lambda x: x[0]))
-
             if (len(bb) <=2) and mode == 1:
                 move(0, -0.3)
-
             else:
-
                 mode += 1
                 if get1 == 0:
                     mode = 3
@@ -363,64 +358,46 @@ if __name__ == "__main__":
                 print("roll2", roll2)
                 print("pitch1", pitch1)
                 print("pitch2", pitch2)
-                axs2, azs2, axs1, azs1 = test_point(ax, az, degree666)
-                bxs2, bzs2, bxs1, bzs1 = test_point(bx, bz, degree666)
+                axs2, azs2 = test_point(ax, az, degree666)
+                bxs2, bzs2 = test_point(bx, bz, degree666)
                 print("before position", ax, ay, az, bx, by, bz)
                 print("cal hand position", axs2, ay, azs2, bxs2, by, bzs2)
+                ggg=0
                 for i, detection in enumerate(bb):
                     # print(detection)
                     x1, y1, x2, y2, score, class_id = map(int, detection)
                     score = detection[4]
-                    # print(id)
                     ggg = 1
                     bottle.append(detection)
                     E += 1
                     cx1 = (x2 - x1) // 2 + x1
                     cy1 = (y2 - y1) // 2 + y1
-
                     px, py, pz = get_real_xyz(depth2, cx1, cy1)
                     dis_list.append(pz)
-                    # pxs2, pzs2, pxs1, pzs1 = test_point(px, pz, degree666)
-                    # print("bottle",i+1, pxs2,py, pzs2)
-                    cnt = get_distance(px, py, pz, axs2, ay, azs2, bxs2, by, bzs2)
-                    #cv2.putText(outframe, str(int(cnt) // 10), (x1 + 5, y1 - 40), cv2.FONT_HERSHEY_SIMPLEX, 1.15,
-                    #            (0, 0, 255), 2)
-                    cnt = int(cnt)
-                    '''
-                    if cnt != 0 and cnt <= 600:
-                        cnt = int(cnt)
-                    else:
-                        cnt = 9999'''
+                    cnt = int(get_distance(px, py, pz, axs2, ay, azs2, bxs2, by, bzs2))
                     s_c.append(cnt)
                     s_d.append(pz)
-
-                if ggg == 0: s_c = [9999]
+                if ggg == 0: s_c = [-1]
                 TTT = min(s_c)
                 E = s_c.index(TTT)
                 for i, detection in enumerate(bottle):
-                    # print("1")
-                    x1, y1, x2, y2, score, class_id = map(int, detection)
-
-                    if (class_id == 39):
-                        if i == E:
-                            cx1 = (x2 - x1) // 2 + x1
-                            cy1 = (y2 - y1) // 2 + y1
-
-                            cv2.putText(outframe, str(int(TTT) // 10), (x1 + 5, y1 - 40), cv2.FONT_HERSHEY_SIMPLEX,
-                                        1.15,
-                                        (0, 0, 255), 2)
-                            cv2.rectangle(outframe, (x1, y1), (x2, y2), (0, 0, 255), 5)
-                            _, _, dddd1 = get_real_xyz(depth2, cx1, cy1)
-
-                        else:
-                            v = s_c[i]
-                            cv2.putText(outframe, str(int(v)), (x1 + 5, y1 - 30), cv2.FONT_HERSHEY_SIMPLEX, 1,
-                                        (0, 255, 0),
-                                        2)
+                    x1, y1, x2, y2, score, _ = map(int, detection)
+                    if(s_c[i] == -1)
+                        num="error"
+                    else
+                        num=str(int(s_c[i]))
+                    cx1 = (x2 - x1) // 2 + x1
+                    cy1 = (y2 - y1) // 2 + y1
+                    if i == E:
+                        color=(0, 0, 255)
+                    else:
+                        color=(0, 255, 0)
+                    cv2.putText(outframe, num, (x1 + 5, y1 - 40), cv2.FONT_HERSHEY_SIMPLEX,1.15,(0, 0, 255), 2)
+                    cv2.rectangle(outframe, (x1, y1), (x2, y2), (0, 255, 0), 5)
             check_bootle_cnt += 1
             print("check_bootle_cnt", check_bootle_cnt)
             print("getframeyyy", getframeyyy)
-            if check_bootle_cnt >= 300 and len(bb) >= 3 and step2=="none":
+            if check_bootle_cnt >= 3000 and len(bb) >= 3 and step2=="none":
                 step2 = "gettttt"
         E = outframe.copy()
 
