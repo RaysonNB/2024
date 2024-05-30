@@ -62,8 +62,8 @@ def get_distance(px, py, pz, ax, ay, az, bx, by, bz):
 
 
 def get_real_xyz(dp, x, y):
-    a = 55.0 * np.pi / 180
-    b = 86.0 * np.pi / 180
+    a = 63.0 * np.pi / 180
+    b = 50.0 * np.pi / 180
     d = dp[y][x]
     h, w = dp.shape[:2]
     x = int(x) - int(w // 2)
